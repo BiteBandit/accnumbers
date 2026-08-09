@@ -259,7 +259,7 @@ export default function RentalDetailPage() {
 
           const status = (json.status || json.rawStatus)?.toUpperCase();
 
-          setRentalSession(prev => {
+          setRentalSession((prev: any) => {
             if (isCancelled) return prev;
             const prevSmsCount = Array.isArray(prev?.sms) ? prev.sms.length : 0;
             const newSms = json.sms || prev?.sms;
