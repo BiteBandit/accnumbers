@@ -24,6 +24,10 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/solid';
 
+export const dynamic = 'force-dynamic';
+
+
+
 // --- NORMALIZATION FUNCTIONS ---
 
 const getCountryCode = (countryName: string): string => {
