@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -23,10 +23,6 @@ import {
   ChevronRightIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/solid';
-
-export const dynamic = 'force-dynamic';
-
-
 
 // --- NORMALIZATION FUNCTIONS ---
 
@@ -182,7 +178,7 @@ const getCountryFlagUrl = (countryName: string) => {
   return `https://flagcdn.com/w40/${code}.png`;
 };
 
-export default function BuyNumbersPage() {
+function BuyNumbersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -406,31 +402,33 @@ export default function BuyNumbersPage() {
 
   // Automatically handle URL Query parameters if present (e.g. ?service=tiktok&country=canada)
   useEffect(() => {
-    if (isFetchingCatalog || uniqueServices.length === 0) return;
+  if (isFetchingCatalog || uniqueServices.length === 0) return;
 
-    if (queryService) {
-      const matchedService = uniqueServices.find(
-        (s) => s.name.toLowerCase() === queryService.toLowerCase() || getServiceCode(s.name) === getServiceCode(queryService)
-      );
+  if (queryService && (!selectedService || selectedService.name.toLowerCase() !== queryService.toLowerCase())) {
+    const matchedService = uniqueServices.find(
+      (s) => s.name.toLowerCase() === queryService.toLowerCase() || getServiceCode(s.name) === getServiceCode(queryService)
+    );
 
-      if (matchedService) {
-        setSelectedService(matchedService);
-        setStep(2);
+    if (matchedService) {
+      setSelectedService(matchedService);
+      setStep(2);
 
-        if (queryCountry) {
-          const matchedCountryItem = rawCatalog.find(
-            (item) => 
-              item.service.toLowerCase() === matchedService.name.toLowerCase() &&
-              (item.country.toLowerCase() === queryCountry.toLowerCase() || getCountryCode(item.country) === getCountryCode(queryCountry))
-          );
+      if (queryCountry && !selectedCountryName) {
+        const matchedCountryItem = rawCatalog.find(
+          (item) => 
+            item.service.toLowerCase() === matchedService.name.toLowerCase() &&
+            (item.country.toLowerCase() === queryCountry.toLowerCase() || getCountryCode(item.country) === getCountryCode(queryCountry))
+        );
 
-          if (matchedCountryItem) {
-            handleCountrySelect(matchedCountryItem.country, matchedService);
-          }
+        if (matchedCountryItem) {
+          handleCountrySelect(matchedCountryItem.country, matchedService);
         }
       }
     }
-  }, [isFetchingCatalog, uniqueServices, queryService, queryCountry, rawCatalog]);
+  }
+}, [isFetchingCatalog, uniqueServices, queryService, queryCountry, rawCatalog, selectedService, selectedCountryName]);
+
+
 
   const filteredServices = useMemo(() => {
     if (!serviceSearchQuery.trim()) return uniqueServices;
@@ -1000,3 +998,11 @@ export default function BuyNumbersPage() {
     </div>
   );
 }
+export default function BuyNumbersPage() {
+  return (
+    <Suspense fallback={null}>
+      <BuyNumbersContent />
+    </Suspense>
+  );
+}
+
