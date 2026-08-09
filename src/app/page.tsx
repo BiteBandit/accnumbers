@@ -1,3 +1,25 @@
+export const metadata = {
+  title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+  description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, Netflix, and 1000+ services. Instant SMS and OTP code delivery.",
+  keywords: [
+    "virtual SMS verification",
+    "temporary phone number for OTP",
+    "non-VoIP numbers for WhatsApp",
+    "rent virtual number online",
+    "Telegram verification number",
+    "receive SMS online",
+    "disposable phone numbers",
+    "SMS activate alternative"
+  ],
+  openGraph: {
+    title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+    description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
+    url: 'https://accnumbers.com',
+    siteName: 'Accnumbers',
+    type: 'website',
+  },
+};
+
 'use client';
 
 import { useState, useEffect } from 'react';

@@ -1,3 +1,12 @@
+export const metadata = {
+  title: "Terms of Service - Accnumbers",
+  description: "Read the terms and conditions for using Accnumbers virtual SMS verification and temporary phone number rental services.",
+  robots: {
+    index: false, // Keeps search engines focused on your service pages
+    follow: true,
+  },
+};
+
 'use client';
 
 import Link from 'next/link';

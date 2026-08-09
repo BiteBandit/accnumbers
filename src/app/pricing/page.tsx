@@ -1,3 +1,21 @@
+export const metadata = {
+  title: "Pricing & Stock Rates - Accnumbers",
+  description: "View transparent pricing starting from ₦96 for non-VoIP virtual numbers across 200+ countries and platforms like WhatsApp, Telegram, and Google.",
+  keywords: [
+    "virtual number rates",
+    "cheap SMS verification price",
+    "WhatsApp number cost Nigeria",
+    "non-VoIP pricing"
+  ],
+  openGraph: {
+    title: "Pricing & Stock Rates - Accnumbers",
+    description: "View transparent pricing starting from ₦96 for non-VoIP virtual numbers across 200+ countries.",
+    url: 'https://accnumbers.com/pricing',
+    siteName: 'Accnumbers',
+    type: 'website',
+  },
+};
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';

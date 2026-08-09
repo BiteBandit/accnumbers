@@ -1,3 +1,12 @@
+export const metadata = {
+  title: "Refund Policy - Accnumbers",
+  description: "Learn about Accnumbers' automatic refund policy for undelivered SMS verification codes and unused temporary number rentals.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
+
 'use client';
 
 import Link from 'next/link';
