@@ -5,7 +5,15 @@ import CommunityModal from "@/components/CommunityModal";
 
 export const metadata = {
   title: "Accnumbers - Instant Virtual SMS & OTP Verification",
-  description: "Rent non-VoIP temporary numbers worldwide for WhatsApp, Telegram, Google, and 50+ services.",
+  description: "Rent non-VoIP temporary numbers worldwide for WhatsApp, Telegram, Google, and 150+ services.",
+  metadataBase: new URL('https://accnumbers.com'),
+  openGraph: {
+    title: "Accnumbers - Instant Virtual SMS & OTP Verification",
+    description: "Rent non-VoIP temporary numbers worldwide for WhatsApp, Telegram, Google, and 50+ services.",
+    url: 'https://accnumbers.com',
+    siteName: 'Accnumbers',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
@@ -13,6 +21,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Accnumbers',
+    url: 'https://accnumbers.com',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://accnumbers.com/dashboard/numbers?service={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html lang="en">
       <head>
@@ -23,6 +43,11 @@ export default function RootLayout({
           integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" 
           crossOrigin="anonymous" 
           referrerPolicy="no-referrer" 
+        />
+        {/* SEO Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body className="bg-slate-950 text-slate-100 antialiased font-sans">
