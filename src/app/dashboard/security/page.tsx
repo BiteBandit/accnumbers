@@ -290,7 +290,7 @@ export default function SecurityPage() {
       const factorId = data.id;
       setPendingFactorId(factorId);
 
-      const secretKey = data.totp?.secret || data.secret;
+      const secretKey = data.totp?.secret || (data as any).secret;
       setTotpSecret(secretKey);
       
       const qrUri = data.totp?.uri;
