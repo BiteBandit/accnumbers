@@ -1,12 +1,3 @@
-export const metadata = {
-  title: "Privacy Policy - Accnumbers",
-  description: "Read how Accnumbers protects your data, ensures user privacy, and handles security for virtual number rentals.",
-  robots: {
-    index: false,
-    follow: true,
-  },
-};
-
 'use client';
 
 import Link from 'next/link';

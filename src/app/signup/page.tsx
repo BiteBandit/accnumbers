@@ -1,13 +1,3 @@
-export const metadata = {
-  title: "Create an Account - Accnumbers | Instant Virtual SMS & OTP",
-  description: "Sign up for Accnumbers to start renting secure non-VoIP temporary numbers for WhatsApp, Telegram, and 50+ services in seconds.",
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
-
-
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';

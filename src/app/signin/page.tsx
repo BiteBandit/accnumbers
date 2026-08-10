@@ -1,12 +1,3 @@
-export const metadata = {
-  title: "Sign In to Your Account - Accnumbers",
-  description: "Access your Accnumbers dashboard to manage your virtual number rentals, live SMS code deliveries, and API keys.",
-  robots: {
-    index: false, // Prevents search engines from indexing login pages (recommended for user security)
-    follow: true,
-  },
-};
-
 'use client';
 
 import { useState, useEffect } from 'react';
