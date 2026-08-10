@@ -17,8 +17,24 @@ export const metadata = {
     url: 'https://accnumbers.com',
     siteName: 'Accnumbers',
     type: 'website',
+    images: [
+      {
+        url: 'https://accnumbers.com/seo-banner.png',
+        width: 1200,
+        height: 630,
+        alt: 'Accnumbers - Instant Virtual SMS & OTP Verification',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+    description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
+    images: ['https://accnumbers.com/seo-banner.png'],
   },
 };
+
+
 
 'use client';
 
