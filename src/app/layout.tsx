@@ -4,15 +4,72 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import CommunityModal from "@/components/CommunityModal";
 
 export const metadata = {
-  title: "Accnumbers - Instant Virtual SMS & OTP Verification",
-  description: "Rent non-VoIP temporary numbers worldwide for WhatsApp, Telegram, Google, and 150+ services.",
   metadataBase: new URL('https://accnumbers.com'),
+  title: {
+    default: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+    template: "%s | Accnumbers"
+  },
+  description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, Netflix, and 1000+ services. Instant SMS and OTP code delivery.",
+  keywords: [
+    "virtual SMS verification",
+    "temporary phone number for OTP",
+    "non-VoIP numbers for WhatsApp",
+    "rent virtual number online",
+    "Telegram verification number",
+    "receive SMS online",
+    "disposable phone numbers",
+    "SMS activate alternative",
+    "acc numbers",
+    "virtual number"
+  ],
+  authors: [{ name: "Accnumbers" }],
+  creator: "Accnumbers",
+  publisher: "Accnumbers",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: 'https://accnumbers.com',
+  },
   openGraph: {
-    title: "Accnumbers - Instant Virtual SMS & OTP Verification",
-    description: "Rent non-VoIP temporary numbers worldwide for WhatsApp, Telegram, Google, and 50+ services.",
+    title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+    description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
     url: 'https://accnumbers.com',
     siteName: 'Accnumbers',
+    locale: 'en_US',
     type: 'website',
+    images: [
+      {
+        url: 'https://accnumbers.com/seo-banner.png',
+        width: 1200,
+        height: 630,
+        alt: 'Accnumbers - Instant Virtual SMS & OTP Verification',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+    description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
+    images: ['https://accnumbers.com/seo-banner.png'],
+    creator: '@accnumbers',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Drop your Google Search Console verification code here once you getit
+    google: 'your-google-search-console-verification-code',
   },
 };
 

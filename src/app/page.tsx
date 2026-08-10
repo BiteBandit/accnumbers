@@ -1,5 +1,9 @@
 export const metadata = {
-  title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+  metadataBase: new URL('https://accnumbers.com'),
+  title: {
+    default: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
+    template: "%s | Accnumbers"
+  },
   description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, Netflix, and 1000+ services. Instant SMS and OTP code delivery.",
   keywords: [
     "virtual SMS verification",
@@ -9,13 +13,27 @@ export const metadata = {
     "Telegram verification number",
     "receive SMS online",
     "disposable phone numbers",
-    "SMS activate alternative"
+    "SMS activate alternative",
+    "acc numbers",
+    "virtual number"
   ],
+  authors: [{ name: "Accnumbers" }],
+  creator: "Accnumbers",
+  publisher: "Accnumbers",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: 'https://accnumbers.com',
+  },
   openGraph: {
     title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
     description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
     url: 'https://accnumbers.com',
     siteName: 'Accnumbers',
+    locale: 'en_US',
     type: 'website',
     images: [
       {
@@ -31,9 +49,20 @@ export const metadata = {
     title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
     description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
     images: ['https://accnumbers.com/seo-banner.png'],
+    creator: '@accnumbers',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
-
 
 
 'use client';
