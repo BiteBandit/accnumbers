@@ -2,6 +2,7 @@ import "./globals.css";
 import MaintenanceBanner from "@/components/MaintenanceBanner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import CommunityModal from "@/components/CommunityModal";
+import seoBanner from "./seo-banner.png";
 
 export const metadata = {
   metadataBase: new URL('https://accnumbers.com'),
@@ -42,7 +43,7 @@ export const metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://accnumbers.com/seo-banner.png',
+        url: seoBanner.src,
         width: 1200,
         height: 630,
         alt: 'Accnumbers - Instant Virtual SMS & OTP Verification',
@@ -53,7 +54,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: "Accnumbers - Instant Virtual SMS & OTP Verification Numbers",
     description: "Rent reliable non-VoIP temporary phone numbers online for WhatsApp, Telegram, Google, and 1000+ services.",
-    images: ['https://accnumbers.com/seo-banner.png'],
+    images: [seoBanner.src],
     creator: '@accnumbers',
   },
   robots: {
@@ -68,7 +69,6 @@ export const metadata = {
     },
   },
   verification: {
-    // Drop your Google Search Console verification code here once you getit
     google: 'your-google-search-console-verification-code',
   },
 };
@@ -93,7 +93,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Font Awesome 6 Free CDN */}
         <link 
           rel="stylesheet" 
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" 
@@ -101,22 +100,15 @@ export default function RootLayout({
           crossOrigin="anonymous" 
           referrerPolicy="no-referrer" 
         />
-        {/* SEO Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body className="bg-slate-950 text-slate-100 antialiased font-sans">
-        {/* Global Maintenance Banner */}
         <MaintenanceBanner />
-
-        {/* Global Announcement Banner */}
         <AnnouncementBanner />
-
-        {/* Global Community/Group Links Popup */}
         <CommunityModal />
-        
         {children}
       </body>
     </html>
