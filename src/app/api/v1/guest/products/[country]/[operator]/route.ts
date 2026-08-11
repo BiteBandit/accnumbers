@@ -25,7 +25,9 @@ export async function GET(
   { params }: { params: Promise<{ country: string; operator: string }> }
 ) {
   try {
-    const { country, operator } = await params;
+    const resolvedParams = await params;
+    const country = resolvedParams?.country?.toLowerCase() || '';
+    const operator = resolvedParams?.operator?.toLowerCase() || '';
 
     if (!country || !operator) {
       return NextResponse.json(
@@ -56,6 +58,7 @@ export async function GET(
 
     const textBody = await providerRes.text();
     if (!textBody || textBody.trim() === '') {
+      console.log('[DEBUG] Provider returned empty text body.');
       return NextResponse.json({}, { status: 200 });
     }
 
@@ -69,27 +72,33 @@ export async function GET(
       );
     }
 
-    const countryData = data?.[country.toLowerCase()];
-    const operatorData = countryData?.[operator.toLowerCase()];
+    // --- DEBUG LOGS ---
+    console.log('[DEBUG] Requested Country:', country);
+    console.log('[DEBUG] Requested Operator:', operator);
+    console.log('[DEBUG] Country exists in payload?', !!data?.[country]);
+    if (data?.[country]) {
+      console.log('[DEBUG] Available operators for this country:', Object.keys(data[country]));
+      console.log('[DEBUG] Operator exists in country?', !!data[country]?.[operator]);
+    }
+    // ------------------
+
+    const countryData = data?.[country];
+    const operatorData = countryData?.[operator];
 
     if (!operatorData) {
       return NextResponse.json({}, { status: 200 });
     }
 
-    // Transform 5-SIM's structure into the exact 5-SIM product catalog format
-    // Format required: { "service_name": { "Category": "...", "Qty": 123, "Price": 456 } }
     const modifiedProducts: Record<string, { Category: string; Qty: number; Price: number }> = {};
 
     for (const [serviceName, serviceInfo] of Object.entries(operatorData as Record<string, any>)) {
       const baseUsdPrice = Number(serviceInfo?.cost || serviceInfo?.price || 0);
       const totalStock = Number(serviceInfo?.count || 0);
 
-      // Skip products with 0 stock if you want, or include them
       if (totalStock <= 0) continue;
 
-      // Apply markup and conversion rate (e.g., converting to NGN or keeping it as final store currency)
       const priceUsd = baseUsdPrice * defaultMarkup;
-      const finalPrice = Math.ceil(priceUsd * usdToNgnRate); // or just Math.round(priceUsd) if using USD
+      const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
 
       modifiedProducts[serviceName] = {
         Category: serviceInfo?.category || 'activation',
