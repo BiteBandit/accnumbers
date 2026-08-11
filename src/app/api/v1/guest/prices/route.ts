@@ -73,18 +73,62 @@ export async function GET(request: Request) {
       return NextResponse.json({}, { status: 200 });
     }
 
+    // 5-SIM sometimes returns a flat array or object list instead of a nested object tree 
+    // when specific filters like country + product are combined. Let's make the traversal safe.
+    if (Array.isArray(globalData)) {
+      const modifiedPricesArray = globalData.map((item: any) => {
+        if (!item || typeof item !== 'object') return item;
+        const details = item;
+        const baseUsdPrice = Number(details.cost || details.price || 0);
+
+        const priceUsd = baseUsdPrice * defaultMarkup;
+        const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
+
+        const { price, ...restDetails } = details;
+
+        return {
+          ...restDetails,
+          cost: finalPrice,
+        };
+      });
+
+      const response = NextResponse.json(modifiedPricesArray, { status: 200 });
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      return response;
+    }
+
     const modifiedPricesData: Record<string, Record<string, Record<string, any>>> = {};
 
-    // 5-SIM structure switches depending on whether a product query filter is used:
-    // Standard/Country: Country -> Product -> Operator -> Details
-    // Product query:    Product -> Country -> Operator -> Details
     for (const [firstKey, firstObj] of Object.entries(globalData as Record<string, any>)) {
-      if (!firstObj || typeof firstObj !== 'object') continue;
+      if (!firstObj || typeof firstObj !== 'object') {
+        modifiedPricesData[firstKey] = firstObj;
+        continue;
+      }
 
       modifiedPricesData[firstKey] = {};
 
       for (const [secondKey, secondObj] of Object.entries(firstObj as Record<string, any>)) {
-        if (!secondObj || typeof secondObj !== 'object') continue;
+        if (!secondObj || typeof secondObj !== 'object') {
+          modifiedPricesData[firstKey][secondKey] = secondObj;
+          continue;
+        }
+
+        // Check if secondObj is the operator details object directly (happens on specific filtered endpoints)
+        if ('cost' in secondObj || 'count' in secondObj || 'price' in secondObj || 'rate' in secondObj) {
+          const details = (secondObj as any) || {};
+          const baseUsdPrice = Number(details.cost || details.price || 0);
+
+          const priceUsd = baseUsdPrice * defaultMarkup;
+          const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
+
+          const { price, ...restDetails } = details;
+
+          (modifiedPricesData[firstKey] as any)[secondKey] = {
+            ...restDetails,
+            cost: finalPrice,
+          };
+          continue;
+        }
 
         modifiedPricesData[firstKey][secondKey] = {};
 
