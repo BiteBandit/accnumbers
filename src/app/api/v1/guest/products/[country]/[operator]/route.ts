@@ -9,11 +9,10 @@ async function getPricingConfig() {
     const markupRow = data.find((row) => row.key === 'markup_multiplier');
     const usdToNgnRow = data.find((row) => row.key === 'usd_to_ngn' || row.key === 'usdt_rate');
 
-    const config = {
+    return {
       defaultMarkup: markupRow ? Number(markupRow.value) : 1.0,
       usdToNgnRate: usdToNgnRow ? Number(usdToNgnRow.value) : 1500,
     };
-    return config;
   } catch (err) {
     console.error('[API PRODUCTS] Error loading settings from Supabase:', err);
     return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
@@ -30,23 +29,11 @@ export async function GET(
     const operator = resolvedParams?.operator?.toLowerCase() || '';
 
     if (!country || !operator) {
-      return NextResponse.json(
-        { error: 'Missing country or operator path parameters.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
     const apiKey = process.env.SIM5_API_KEY || process.env.GRIZZLY_API_KEY || '';
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'API key is missing in server environment variables.' },
-        { status: 500 }
-      );
-    }
-
-    const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
-
-    // Fetch global prices from 5-SIM
+    
     const providerRes = await fetch('https://5sim.net/v1/guest/prices', {
       method: 'GET',
       headers: {
@@ -58,42 +45,40 @@ export async function GET(
 
     const textBody = await providerRes.text();
     if (!textBody || textBody.trim() === '') {
-      console.log('[DEBUG] Provider returned empty text body.');
       return NextResponse.json({}, { status: 200 });
     }
 
-    let data;
-    try {
-      data = JSON.parse(textBody);
-    } catch (parseErr) {
-      return NextResponse.json(
-        { error: 'Failed to parse provider JSON payload.' },
-        { status: 502 }
-      );
+    const data = JSON.parse(textBody);
+
+    // --- DEEP INSPECTION LOGS ---
+    // This will print the first 10 country keys available in your Vercel Function logs
+    console.log('[5SIM_DEBUG] Sample keys in root data:', Object.keys(data).slice(0, 10));
+    console.log('[5SIM_DEBUG] Looking for country key:', country);
+    
+    let countryData = data?.[country];
+    
+    // If exact match fails, let's see if it's stored under a different variation or case
+    if (!countryData) {
+      const foundKey = Object.keys(data).find(k => k.toLowerCase() === country);
+      if (foundKey) {
+        countryData = data[foundKey];
+        console.log('[5SIM_DEBUG] Found country via case-insensitive match:', foundKey);
+      }
     }
 
-    // --- DEBUG LOGS ---
-    console.log('[DEBUG] Requested Country:', country);
-    console.log('[DEBUG] Requested Operator:', operator);
-    console.log('[DEBUG] Country exists in payload?', !!data?.[country]);
-    if (data?.[country]) {
-      console.log('[DEBUG] Available operators for this country:', Object.keys(data[country]));
-      console.log('[DEBUG] Operator exists in country?', !!data[country]?.[operator]);
-    }
-    // ------------------
-
-    const countryData = data?.[country];
-    const operatorData = countryData?.[operator];
+    const operatorData = countryData?.[operator] || countryData?.[Object.keys(countryData || {}).find(k => k.toLowerCase() === operator) || ''];
 
     if (!operatorData) {
+      console.log('[5SIM_DEBUG] Operator not found under country. Available operators:', countryData ? Object.keys(countryData).slice(0, 10) : 'Country is undefined');
       return NextResponse.json({}, { status: 200 });
     }
 
+    const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
     const modifiedProducts: Record<string, { Category: string; Qty: number; Price: number }> = {};
 
     for (const [serviceName, serviceInfo] of Object.entries(operatorData as Record<string, any>)) {
-      const baseUsdPrice = Number(serviceInfo?.cost || serviceInfo?.price || 0);
-      const totalStock = Number(serviceInfo?.count || 0);
+      const baseUsdPrice = Number((serviceInfo as any)?.cost || (serviceInfo as any)?.price || 0);
+      const totalStock = Number((serviceInfo as any)?.count || 0);
 
       if (totalStock <= 0) continue;
 
@@ -101,7 +86,7 @@ export async function GET(
       const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
 
       modifiedProducts[serviceName] = {
-        Category: serviceInfo?.category || 'activation',
+        Category: (serviceInfo as any)?.category || 'activation',
         Qty: totalStock,
         Price: finalPrice,
       };
@@ -113,10 +98,7 @@ export async function GET(
 
   } catch (error: any) {
     console.error('[API GUEST PRODUCTS CRITICAL ERROR]:', error);
-    return NextResponse.json(
-      { error: error.message || 'Internal server error while loading products.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
 
