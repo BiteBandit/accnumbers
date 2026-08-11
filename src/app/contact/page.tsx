@@ -1,90 +1,6 @@
 import Link from 'next/link';
 
-interface ServiceItem {
-  id: string;
-  country: string;
-  service: string;
-  price: number;
-  totalStock: number;
-}
-
-// Direct backend fetcher
-async function getLivePrices(): Promise<ServiceItem[]> {
-  try {
-    const res = await fetch('http://127.0.0.1:3000/api/prices', {
-      cache: 'no-store',
-    });
-
-    if (!res.ok) return [];
-
-    const json = await res.json();
-    const rawData = json.data || json.services;
-
-    if (!rawData) return [];
-
-    // If it's already a formatted array
-    if (Array.isArray(rawData)) {
-      return rawData;
-    }
-
-    // Process nested route inventory JSON structure
-    const parsedList: ServiceItem[] = [];
-    if (typeof rawData === 'object' && rawData !== null) {
-      Object.entries(rawData).forEach(([countryName, countryObj]: [string, any]) => {
-        if (typeof countryObj === 'object' && countryObj !== null) {
-          Object.entries(countryObj).forEach(([serviceName, serviceObj]: [string, any]) => {
-            if (typeof serviceObj === 'object' && serviceObj !== null) {
-              let lowestCost = Infinity;
-              let totalStock = 0;
-
-              Object.values(serviceObj).forEach((opDetails: any) => {
-                if (opDetails && typeof opDetails === 'object') {
-                  const cost = Number(opDetails.cost) || 0;
-                  const count = Number(opDetails.count) || 0;
-
-                  if (cost < lowestCost) lowestCost = cost;
-                  totalStock += count;
-                }
-              });
-
-              if (lowestCost !== Infinity) {
-                parsedList.push({
-                  id: `${countryName}-${serviceName}`,
-                  country: countryName.charAt(0).toUpperCase() + countryName.slice(1),
-                  service: serviceName.toUpperCase(),
-                  price: lowestCost,
-                  totalStock,
-                });
-              }
-            }
-          });
-        }
-      });
-    }
-
-    parsedList.sort((a, b) => b.totalStock - a.totalStock);
-    return parsedList;
-  } catch (err) {
-    console.error('Server-side fetch error:', err);
-    return [];
-  }
-}
-
-export default async function PricingPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ q?: string }>;
-}) {
-  const resolvedParams = await searchParams;
-  const searchQuery = resolvedParams?.q || '';
-  const allServices = await getLivePrices();
-
-  const filteredServices = allServices.filter(
-    (item) =>
-      item.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#fdfdfc] text-[#0b1e5b] flex flex-col justify-between">
       
@@ -95,84 +11,76 @@ export default async function PricingPage({
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-widest text-[#0b1e5b]">
-                Live Rates & Stock
+                Support & Assistance
               </span>
               <span className="text-[10px] font-bold bg-[#e5e7eb] text-[#0b1e5b] px-3 py-1 rounded-full flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${allServices.length > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
-                {allServices.length > 0 ? 'AccNumbers Live Sync Active' : 'Connection Error'}
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Support Active
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-[#0b1e5b] tracking-tight leading-none">
-              Transparent SMS Pricing.
+              Get in Touch.
             </h1>
             <p className="text-sm sm:text-base text-[#6b7280] font-medium max-w-xl leading-relaxed">
-              Real-time prices and stock synchronized with activation routes. Pay only when an SMS code is delivered.
+              General support, billing, and integration help. We're here to make sure your SMS activations run smoothly.
             </p>
           </div>
         </section>
 
-        {/* PRICING TABLE & SEARCH */}
+        {/* CONTENT SECTION */}
         <section className="py-12 px-4">
           <div className="max-w-3xl mx-auto space-y-6">
 
-            {/* SEARCH INPUT (Native Server-compatible Form) */}
-            <form method="GET" className="bg-[#fdfdfc] border border-[#e5e7eb] rounded-2xl p-4 shadow-xs flex items-center gap-3">
-              <input
-                type="text"
-                name="q"
-                defaultValue={searchQuery}
-                placeholder="Search service or country (e.g. WhatsApp, Facebook, England, USA)..."
-                className="w-full bg-transparent text-xs sm:text-sm font-bold text-[#0b1e5b] placeholder-[#6b7280] focus:outline-hidden"
-              />
-              <button type="submit" className="text-xs font-bold bg-[#0b1e5b] text-white px-4 py-2 rounded-xl shrink-0">
-                Search
-              </button>
-            </form>
-
-            {/* TABLE CONTAINER */}
-            <div className="bg-[#fdfdfc] border border-[#e5e7eb] rounded-2xl overflow-hidden shadow-xs">
-              <div className="p-4 bg-[#e5e7eb]/20 border-b border-[#e5e7eb] flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-[#6b7280]">
-                <span>Service & Country</span>
-                <div className="flex items-center gap-8">
-                  <span>Stock</span>
-                  <span>Price (RUB)</span>
+            {/* EMAIL CARD */}
+            <div className="bg-[#fdfdfc] border border-[#e5e7eb] rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#0b1e5b]/5 flex items-center justify-center text-[#0b1e5b] text-xl font-black">
+                  <i className="fa-solid fa-envelope"></i>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6b7280]">Email Us At</span>
+                  <h2 className="text-lg sm:text-xl font-black text-[#0b1e5b]">support@accnumbers.com</h2>
                 </div>
               </div>
+              <p className="text-xs sm:text-sm text-[#6b7280] font-medium leading-relaxed">
+                Send us a direct message for any billing queries, technical issues, or platform assistance.
+              </p>
+            </div>
 
-              <div className="divide-y divide-[#e5e7eb]/60">
-                {filteredServices.length > 0 ? (
-                  filteredServices.map((item, idx) => (
-                    <div 
-                      key={item.id || idx} 
-                      className="p-4 sm:p-5 flex items-center justify-between hover:bg-[#e5e7eb]/10 transition"
-                    >
-                      <div className="space-y-0.5">
-                        <h3 className="text-sm font-black text-[#0b1e5b]">{item.service}</h3>
-                        <p className="text-xs text-[#6b7280] font-medium">{item.country}</p>
-                      </div>
+            {/* RESPONSE TIMES GRID */}
+            <div className="bg-[#fdfdfc] border border-[#e5e7eb] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+              <h3 className="text-xs font-black uppercase tracking-widest text-[#0b1e5b]">Response Times</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="space-y-1 bg-[#e5e7eb]/20 p-4 rounded-xl border border-[#e5e7eb]/60">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6b7280]">Standard support</span>
+                  <div className="text-lg font-black text-[#0b1e5b]">&lt; 4 hours</div>
+                  <p className="text-[11px] text-[#6b7280] font-medium">Business days, 09:00-18:00 WAT</p>
+                </div>
 
-                      <div className="flex items-center gap-6 sm:gap-10">
-                        <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg ${
-                          item.totalStock > 100 ? 'bg-emerald-100 text-emerald-800' :
-                          item.totalStock > 0 ? 'bg-amber-100 text-amber-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {item.totalStock > 0 ? `${item.totalStock.toLocaleString()} pcs` : 'Out of stock'}
-                        </span>
-                        <span className="text-sm font-black text-[#0b1e5b] w-16 text-right">
-                          {item.price} ₽
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-8 text-center text-xs text-[#6b7280] font-medium">
-                    {allServices.length === 0
-                      ? 'Failed to pull data from internal /api/prices route.'
-                      : `No services found matching "${searchQuery}".`}
-                  </div>
-                )}
+                <div className="space-y-1 bg-[#e5e7eb]/20 p-4 rounded-xl border border-[#e5e7eb]/60">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6b7280]">Payment / refund</span>
+                  <div className="text-lg font-black text-[#0b1e5b]">&lt; 24 hours</div>
+                  <p className="text-[11px] text-[#6b7280] font-medium">Incl. weekends</p>
+                </div>
+
+                <div className="space-y-1 bg-[#e5e7eb]/20 p-4 rounded-xl border border-[#e5e7eb]/60">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6b7280]">Outage / incident</span>
+                  <div className="text-lg font-black text-[#0b1e5b]">&lt; 30 min</div>
+                  <p className="text-[11px] text-[#6b7280] font-medium">On-call rotation, 24/7</p>
+                </div>
               </div>
+            </div>
+
+            {/* RENTAL ID NOTICE */}
+            <div className="bg-[#0b1e5b] text-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-3">
+              <div className="flex items-center gap-3">
+                <i className="fa-solid fa-circle-exclamation text-emerald-400"></i>
+                <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400">When emailing about a rental</h4>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-slate-200 leading-relaxed">
+                Please include your <strong className="text-white">rental ID</strong> (visible in the URL of any rental detail page, e.g., <code className="bg-white/10 px-1.5 py-0.5 rounded text-emerald-300">/account/rentals/12345</code>) and a short description of what went wrong. We can resolve almost anything from the audit ledger, so the more detail, the faster.
+              </p>
             </div>
 
           </div>
@@ -227,3 +135,4 @@ export default async function PricingPage({
     </div>
   );
 }
+
