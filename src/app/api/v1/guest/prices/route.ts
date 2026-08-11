@@ -14,7 +14,7 @@ async function getPricingConfig() {
       usdToNgnRate: usdToNgnRow ? Number(usdToNgnRow.value) : 1500,
     };
   } catch (err) {
-    console.error('[API PRICES] Error loading settings from Supabase:', err);
+    console.error('[API PRICES BY COUNTRY] Error loading settings from Supabase:', err);
     return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
   }
 }
@@ -29,10 +29,19 @@ export async function GET(request: Request) {
       );
     }
 
+    // Extract country query parameter from the request URL
+    const { searchParams } = new URL(request.url);
+    const countryParam = searchParams.get('country');
+
     const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
 
-    // Fetch the global prices feed from 5-SIM
-    const providerRes = await fetch('https://5sim.net/v1/guest/prices', {
+    // Construct target URL to 5-SIM supporting optional country query parameter
+    let providerUrl = 'https://5sim.net/v1/guest/prices';
+    if (countryParam) {
+      providerUrl += `?country=${encodeURIComponent(countryParam)}`;
+    }
+
+    const providerRes = await fetch(providerUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -81,7 +90,7 @@ export async function GET(request: Request) {
           const priceUsd = baseUsdPrice * defaultMarkup;
           const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
 
-          // Build object using only 'cost' and removing any redundant 'price' field
+          // Remove redundant 'price' field and update 'cost' with final calculated price
           const { price, ...restDetails } = details;
 
           modifiedPricesData[countryName][productName][operatorName] = {
@@ -97,9 +106,9 @@ export async function GET(request: Request) {
     return response;
 
   } catch (error: any) {
-    console.error('[API GLOBAL PRICES CRITICAL ERROR]:', error);
+    console.error('[API PRICES BY COUNTRY CRITICAL ERROR]:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error while loading global prices.' },
+      { error: error.message || 'Internal server error while loading prices by country.' },
       { status: 500 }
     );
   }
