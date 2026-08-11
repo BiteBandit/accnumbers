@@ -137,12 +137,12 @@ const [currentDate, setCurrentDate] = useState<string>('');
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-[#0b1e5b] tracking-tight leading-tight">
-            Programmable Virtual SMS <br />
-            <span className="text-[#0b1e5b]">For Developers & Marketers</span>
+            Virtual Numbers<br />
+            <span className="text-[#0b1e5b]">Instant SMS Verification</span>
           </h1>
 
           <p className="text-[#6b7280] text-sm sm:text-lg max-w-2xl mx-auto font-medium leading-relaxed">
-            Rent non-VoIP temporary phone numbers globally. Instant SMS code delivery to your dashboard or API in seconds.
+            Get reliable phone numbers for receiving SMS codes and verifying your accounts.
           </p>
 
           <div className="flex justify-center gap-3">
@@ -156,7 +156,7 @@ const [currentDate, setCurrentDate] = useState<string>('');
 
           </div>
 
-          {/* Interactive Smartphone Screen Mockup (Like YoungPG) */}
+          {/* Interactive Smartphone Screen Mockup */}
           <div className="pt-8 max-w-sm mx-auto relative">
             <div className="bg-[#111111] border-4 border-[#0b1e5b] rounded-[40px] p-4 shadow-2xl space-y-3 text-left relative overflow-hidden">
               <div className="w-28 h-4 bg-[#0b1e5b] rounded-full mx-auto mb-4"></div>
