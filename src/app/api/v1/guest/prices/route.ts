@@ -14,7 +14,7 @@ async function getPricingConfig() {
       usdToNgnRate: usdToNgnRow ? Number(usdToNgnRow.value) : 1500,
     };
   } catch (err) {
-    console.error('[API PRICES BY COUNTRY] Error loading settings from Supabase:', err);
+    console.error('[API PRICES] Error loading settings from Supabase:', err);
     return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
   }
 }
@@ -29,16 +29,20 @@ export async function GET(request: Request) {
       );
     }
 
-    // Extract country query parameter from the request URL
+    // Extract query parameters from request URL
     const { searchParams } = new URL(request.url);
     const countryParam = searchParams.get('country');
+    const productParam = searchParams.get('product');
 
     const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
 
-    // Construct target URL to 5-SIM supporting optional country query parameter
+    // Construct target URL to 5-SIM supporting optional filters
     let providerUrl = 'https://5sim.net/v1/guest/prices';
-    if (countryParam) {
-      providerUrl += `?country=${encodeURIComponent(countryParam)}`;
+    const queryParts: string[] = [];
+    if (countryParam) queryParts.push(`country=${encodeURIComponent(countryParam)}`);
+    if (productParam) queryParts.push(`product=${encodeURIComponent(productParam)}`);
+    if (queryParts.length > 0) {
+      providerUrl += `?${queryParts.join('&')}`;
     }
 
     const providerRes = await fetch(providerUrl, {
@@ -69,20 +73,22 @@ export async function GET(request: Request) {
       return NextResponse.json({}, { status: 200 });
     }
 
-    // Traverse: Country -> Product -> Operator -> Details
     const modifiedPricesData: Record<string, Record<string, Record<string, any>>> = {};
 
-    for (const [countryName, countryObj] of Object.entries(globalData as Record<string, any>)) {
-      if (!countryObj || typeof countryObj !== 'object') continue;
+    // 5-SIM structure switches depending on whether a product query filter is used:
+    // Standard/Country: Country -> Product -> Operator -> Details
+    // Product query:    Product -> Country -> Operator -> Details
+    for (const [firstKey, firstObj] of Object.entries(globalData as Record<string, any>)) {
+      if (!firstObj || typeof firstObj !== 'object') continue;
 
-      modifiedPricesData[countryName] = {};
+      modifiedPricesData[firstKey] = {};
 
-      for (const [productName, productObj] of Object.entries(countryObj as Record<string, any>)) {
-        if (!productObj || typeof productObj !== 'object') continue;
+      for (const [secondKey, secondObj] of Object.entries(firstObj as Record<string, any>)) {
+        if (!secondObj || typeof secondObj !== 'object') continue;
 
-        modifiedPricesData[countryName][productName] = {};
+        modifiedPricesData[firstKey][secondKey] = {};
 
-        for (const [operatorName, operatorDetails] of Object.entries(productObj as Record<string, any>)) {
+        for (const [operatorName, operatorDetails] of Object.entries(secondObj as Record<string, any>)) {
           const details = (operatorDetails as any) || {};
           const baseUsdPrice = Number(details.cost || details.price || 0);
 
@@ -90,10 +96,10 @@ export async function GET(request: Request) {
           const priceUsd = baseUsdPrice * defaultMarkup;
           const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
 
-          // Remove redundant 'price' field and update 'cost' with final calculated price
+          // Remove redundant 'price' field and keep only 'cost'
           const { price, ...restDetails } = details;
 
-          modifiedPricesData[countryName][productName][operatorName] = {
+          modifiedPricesData[firstKey][secondKey][operatorName] = {
             ...restDetails,
             cost: finalPrice,
           };
@@ -106,9 +112,9 @@ export async function GET(request: Request) {
     return response;
 
   } catch (error: any) {
-    console.error('[API PRICES BY COUNTRY CRITICAL ERROR]:', error);
+    console.error('[API PRICES CRITICAL ERROR]:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error while loading prices by country.' },
+      { error: error.message || 'Internal server error while loading prices.' },
       { status: 500 }
     );
   }
