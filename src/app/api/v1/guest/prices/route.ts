@@ -74,16 +74,19 @@ export async function GET(request: Request) {
         modifiedPricesData[countryName][productName] = {};
 
         for (const [operatorName, operatorDetails] of Object.entries(productObj as Record<string, any>)) {
-          const baseUsdPrice = Number((operatorDetails as any)?.cost || (operatorDetails as any)?.price || 0);
+          const details = (operatorDetails as any) || {};
+          const baseUsdPrice = Number(details.cost || details.price || 0);
 
           // Apply markup and conversion rate
           const priceUsd = baseUsdPrice * defaultMarkup;
           const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
 
+          // Build object using only 'cost' and removing any redundant 'price' field
+          const { price, ...restDetails } = details;
+
           modifiedPricesData[countryName][productName][operatorName] = {
-            ...(operatorDetails as any),
+            ...restDetails,
             cost: finalPrice,
-            price: finalPrice,
           };
         }
       }
