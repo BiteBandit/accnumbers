@@ -29,12 +29,24 @@ export async function GET(
     const operator = resolvedParams?.operator?.toLowerCase() || '';
 
     if (!country || !operator) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing country or operator path parameters.' },
+        { status: 400 }
+      );
     }
 
     const apiKey = process.env.SIM5_API_KEY || process.env.GRIZZLY_API_KEY || '';
-    
-    const providerRes = await fetch('https://5sim.net/v1/guest/prices', {
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'API key is missing in server environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
+
+    // Query 5-SIM's direct product endpoint for the given country and operator
+    const providerRes = await fetch(`https://5sim.net/v1/guest/products/${country}/${operator}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -48,45 +60,35 @@ export async function GET(
       return NextResponse.json({}, { status: 200 });
     }
 
-    const data = JSON.parse(textBody);
-
-    // --- DEEP INSPECTION LOGS ---
-    // This will print the first 10 country keys available in your Vercel Function logs
-    console.log('[5SIM_DEBUG] Sample keys in root data:', Object.keys(data).slice(0, 10));
-    console.log('[5SIM_DEBUG] Looking for country key:', country);
-    
-    let countryData = data?.[country];
-    
-    // If exact match fails, let's see if it's stored under a different variation or case
-    if (!countryData) {
-      const foundKey = Object.keys(data).find(k => k.toLowerCase() === country);
-      if (foundKey) {
-        countryData = data[foundKey];
-        console.log('[5SIM_DEBUG] Found country via case-insensitive match:', foundKey);
-      }
+    let upstreamData;
+    try {
+      upstreamData = JSON.parse(textBody);
+    } catch (parseErr) {
+      return NextResponse.json(
+        { error: 'Failed to parse provider JSON payload.' },
+        { status: 502 }
+      );
     }
 
-    const operatorData = countryData?.[operator] || countryData?.[Object.keys(countryData || {}).find(k => k.toLowerCase() === operator) || ''];
-
-    if (!operatorData) {
-      console.log('[5SIM_DEBUG] Operator not found under country. Available operators:', countryData ? Object.keys(countryData).slice(0, 10) : 'Country is undefined');
+    // If 5-SIM returns an error message or empty object
+    if (!upstreamData || typeof upstreamData !== 'object') {
       return NextResponse.json({}, { status: 200 });
     }
 
-    const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
+    // Transform raw 5-SIM products payload: apply your markup and conversion rate
     const modifiedProducts: Record<string, { Category: string; Qty: number; Price: number }> = {};
 
-    for (const [serviceName, serviceInfo] of Object.entries(operatorData as Record<string, any>)) {
-      const baseUsdPrice = Number((serviceInfo as any)?.cost || (serviceInfo as any)?.price || 0);
-      const totalStock = Number((serviceInfo as any)?.count || 0);
+    for (const [productName, productDetails] of Object.entries(upstreamData as Record<string, any>)) {
+      const baseUsdPrice = Number(productDetails?.Price || productDetails?.cost || productDetails?.price || 0);
+      const totalStock = Number(productDetails?.Qty || productDetails?.count || 0);
 
       if (totalStock <= 0) continue;
 
       const priceUsd = baseUsdPrice * defaultMarkup;
       const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
 
-      modifiedProducts[serviceName] = {
-        Category: (serviceInfo as any)?.category || 'activation',
+      modifiedProducts[productName] = {
+        Category: productDetails?.Category || productDetails?.category || 'activation',
         Qty: totalStock,
         Price: finalPrice,
       };
@@ -98,7 +100,10 @@ export async function GET(
 
   } catch (error: any) {
     console.error('[API GUEST PRODUCTS CRITICAL ERROR]:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Internal server error while loading products.' },
+      { status: 500 }
+    );
   }
 }
 
