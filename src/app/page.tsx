@@ -86,12 +86,14 @@ const [currentDate, setCurrentDate] = useState<string>('');
           
           {/* Logo & Brand Image */}
           <a href="/" className="flex items-center gap-3 group">
-            <img 
-              src="/logo.png" 
-              alt="AccNumbers Logo" 
-              className="h-20 w-auto object-contain transition-transform group-hover:scale-105"
-            />
-          </a>
+  <img 
+    src="/logo.png" 
+    alt="AccNumbers Logo" 
+    width="257"
+    height="140"
+    className="h-20 w-auto object-contain transition-transform group-hover:scale-105"
+  />
+</a>
 
           {/* Navigation Links */}
           <div className="hidden lg:flex items-center gap-7 text-xs font-bold text-[#6b7280]">
