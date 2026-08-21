@@ -323,6 +323,39 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
+                        {/* Form */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit(e);
+              }} 
+              className="space-y-4 text-left"
+            >
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#0b1e5b] uppercase tracking-wider">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border border-[#cbd5e1] bg-white text-sm font-medium text-[#0b1e5b] focus:outline-none focus:ring-2 focus:ring-[#0b1e5b]/20 focus:border-[#0b1e5b] transition shadow-2xs"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#0b1e5b] text-[#fdfdfc] font-bold text-sm hover:bg-[#0b1e5b]/90 transition shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer mt-2"
+              >
+                {loading ? 'Sending link...' : 'Send Reset Link'}
+              </button>
+
+            </form>
 
 
 
