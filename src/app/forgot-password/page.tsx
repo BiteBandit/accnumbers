@@ -79,8 +79,8 @@ export default function ForgotPasswordPage() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Crucial: prevents the default browser form reload
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
@@ -303,7 +303,7 @@ export default function ForgotPasswordPage() {
                 Reset password
               </h1>
               <p className="text-xs sm:text-sm font-medium text-[#6b7280]">
-                Enter your email and we'll send you a link to reset your password.
+                Enter your email and we'll send you a link to reset your password
               </p>
             </div>
 
@@ -323,14 +323,8 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-                        {/* Form */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSubmit(e);
-              }} 
-              className="space-y-4 text-left"
-            >
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4 text-left">
               
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-[#0b1e5b] uppercase tracking-wider">
@@ -347,8 +341,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={loading}
                 className="w-full py-3.5 px-4 rounded-xl bg-[#0b1e5b] text-[#fdfdfc] font-bold text-sm hover:bg-[#0b1e5b]/90 transition shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer mt-2"
               >
@@ -356,8 +349,6 @@ export default function ForgotPasswordPage() {
               </button>
 
             </form>
-
-
 
             {/* Footer Link */}
             <div className="text-center lg:text-left pt-2">
