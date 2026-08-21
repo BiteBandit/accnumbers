@@ -57,33 +57,66 @@ export default function DashboardPage() {
 
         // Helper to recalculate rental stats from raw rental items
         const processRentals = (rentalsData: any[]) => {
-          const activeCount = rentalsData.filter((r: any) => r.status === 'active' || r.status === 'pending').length;
-          setActiveRentals(activeCount);
+  const activeCount = rentalsData.filter((r: any) => r.status === 'active' || r.status === 'pending').length;
+  setActiveRentals(activeCount);
 
-          const completedCount = rentalsData.filter((r: any) => r.status === 'completed').length;
-          setCompletedThisMonth(completedCount);
-          
-          const totalSpent = rentalsData.reduce((acc: number, curr: any) => {
-            if (curr.status !== 'cancelled' && curr.status !== 'expired') {
-              return acc + Number(curr.amount || 0);
-            }
-            return acc;
-          }, 0);
+  const completedCount = rentalsData.filter((r: any) => r.status === 'completed' || r.status === 'finished').length;
+  setCompletedThisMonth(completedCount);
+  
+  const totalSpent = rentalsData.reduce((acc: number, curr: any) => {
+    if (curr.status === 'completed' || curr.status === 'finished') {
+      return acc + Number(curr.amount || 0);
+    }
+    return acc;
+  }, 0);
 
-          setLifetimeSpend(totalSpent);
-          setSpendThisMonth(totalSpent);
+  setLifetimeSpend(totalSpent);
+  setSpendThisMonth(totalSpent);
 
-          setRecentRentals(rentalsData.slice(0, 4).map((r: any) => ({
-            id: r.id,
-            service: r.service,
-            country: r.country,
-            number: r.phone_number,
-            code: r.sms_code,
-            status: r.status,
-            amount: `₦${Number(r.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-            date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-          })));
-        };
+  setRecentRentals(rentalsData.slice(0, 4).map((r: any) => {
+    const statusLower = (r.status || '').toLowerCase();
+    
+    // Determine style theme based on status type
+    let theme = {
+      badgeClass: 'text-[#6b7280] bg-[#e5e7eb]/60 border-[#e5e7eb]',
+      iconBg: 'bg-gray-50 text-gray-600 border-gray-100',
+      isSuccess: false
+    };
+
+    if (statusLower === 'completed' || statusLower === 'finished') {
+      theme = {
+        badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+        iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        isSuccess: true
+      };
+    } else if (statusLower === 'active' || statusLower === 'pending') {
+      theme = {
+        badgeClass: 'text-amber-700 bg-amber-50 border-amber-200',
+        iconBg: 'bg-amber-50 text-amber-600 border-amber-100',
+        isSuccess: false
+      };
+    } else if (['cancelled', 'expired', 'aspire', 'timeout', 'banned'].includes(statusLower)) {
+      theme = {
+        badgeClass: 'text-red-700 bg-red-50 border-red-200',
+        iconBg: 'bg-red-50 text-red-600 border-red-100',
+        isSuccess: false
+      };
+    }
+
+    return {
+      id: r.id,
+      service: r.service,
+      country: r.country,
+      number: r.phone_number,
+      code: r.sms_code,
+      status: r.status,
+      theme,
+      amount: `₦${Number(r.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+  }));
+};
+
 
         // 1. Fetch user wallet balance from the database 'wallets' table
         const { data: walletData, error: walletError } = await supabase
@@ -553,55 +586,56 @@ export default function DashboardPage() {
 
         {/* Recent Rentals Section */}
         <div className="bg-white border border-[#e5e7eb] rounded-3xl p-7 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-[#0b1e5b]">Recent rentals</h3>
-            <Link href="/dashboard/rentals" className="text-xs font-bold text-[#6b7280] hover:text-[#0b1e5b]">See all →</Link>
+  <div className="flex items-center justify-between">
+    <h3 className="text-sm font-black text-[#0b1e5b]">Recent rentals</h3>
+    <Link href="/dashboard/rentals" className="text-xs font-bold text-[#6b7280] hover:text-[#0b1e5b]">See all →</Link>
+  </div>
+
+  {recentRentals.length === 0 ? (
+    <div className="py-8 text-center text-xs text-[#6b7280] border border-dashed border-[#e5e7eb] rounded-2xl">
+      No recent rentals found in database.
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {recentRentals.map((item) => (
+        <div key={item.id} className="bg-[#fdfdfc] border border-[#e5e7eb] rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border ${item.theme.iconBg}`}>
+              {item.theme.isSuccess ? (
+                <CheckCircleIcon className="w-5 h-5" />
+              ) : (
+                <XCircleIcon className="w-5 h-5" />
+              )}
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#0b1e5b]">{item.service}</span>
+                <span className="text-[10px] text-[#6b7280] font-medium">{item.country}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#111111]">
+                <span>{item.number}</span>
+                {item.code && <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">{item.code}</span>}
+              </div>
+            </div>
           </div>
 
-          {recentRentals.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[#6b7280] border border-dashed border-[#e5e7eb] rounded-2xl">
-              No recent rentals found in database.
+          <div className="text-right space-y-0.5">
+            <div className="text-xs font-bold text-[#0b1e5b]">{item.amount}</div>
+            <div className="flex items-center justify-end gap-1.5">
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border capitalize ${item.theme.badgeClass}`}>
+                {item.theme.isSuccess ? <CheckCircleIcon className="w-3 h-3" /> : <XCircleIcon className="w-3 h-3" />}
+                {item.status}
+              </span>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {recentRentals.map((item) => (
-                <div key={item.id} className="bg-[#fdfdfc] border border-[#e5e7eb] rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs border border-emerald-100">
-                      <CheckCircleIcon className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#0b1e5b]">{item.service}</span>
-                        <span className="text-[10px] text-[#6b7280] font-medium">{item.country}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#111111]">
-                        <span>{item.number}</span>
-                        {item.code && <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">{item.code}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right space-y-0.5">
-                    <div className="text-xs font-bold text-[#0b1e5b]">{item.amount}</div>
-                    <div className="flex items-center justify-end gap-1.5">
-                      {item.status === 'completed' || item.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          <CheckCircleIcon className="w-3 h-3" /> {item.status}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#6b7280] bg-[#e5e7eb]/60 px-2 py-0.5 rounded-full">
-                          <XCircleIcon className="w-3 h-3" /> {item.status}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-[#6b7280]">{item.date}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            <div className="text-[10px] text-[#6b7280]">{item.date}</div>
+          </div>
         </div>
+      ))}
+    </div>
+  )}
+</div>
+
+
 
         {/* Recent Activity Section with color-coded amount status */}
         <div className="bg-white border border-[#e5e7eb] rounded-3xl p-7 shadow-sm space-y-4">
