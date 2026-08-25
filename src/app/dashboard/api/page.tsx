@@ -447,228 +447,226 @@ export default function ApiHubPage() {
       )}
       
       {/* Main Reseller API Content Area - Expanded for Desktop */}
-      <main className="flex-1 max-w-3xl w-full mx-auto py-10 px-4 sm:px-6 space-y-8">
+      <main className="flex-1 w-full mx-auto py-10 px-4 sm:px-6 lg:px-12 space-y-8">
 
+  {/* Breadcrumb & Header */}
+  <div className="flex items-start justify-between">
+    <div className="space-y-2">
+      <div className="text-xs text-[#6b7280] font-medium">Account <span className="px-1">/</span> API</div>
+      <h1 className="text-2xl sm:text-4xl font-black text-[#0b1e5b] tracking-tight">Reseller API</h1>
+      <p className="text-xs sm:text-sm text-[#6b7280] font-medium max-w-xl">
+        Drop-in compatible with SMS-Activate-style tooling. Swap your host, keep your code.
+      </p>
+    </div>
+    <button 
+      onClick={() => setFaqModalOpen(true)}
+      className="p-2.5 sm:px-4 sm:py-2.5 rounded-2xl bg-white border border-[#e5e7eb] text-[#0b1e5b] hover:bg-[#0b1e5b]/5 transition shadow-xs flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+      title="API Help & FAQ"
+    >
+      <QuestionMarkCircleIcon className="w-5 h-5 text-[#0b1e5b]" />
+      <span className="hidden sm:inline">FAQ</span>
+    </button>
+  </div>
 
-          {/* Breadcrumb & Header */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="text-xs text-[#6b7280] font-medium">Account <span className="px-1">/</span> API</div>
-            <h1 className="text-2xl sm:text-4xl font-black text-[#0b1e5b] tracking-tight">Reseller API</h1>
-            <p className="text-xs sm:text-sm text-[#6b7280] font-medium max-w-xl">
-              Drop-in compatible with SMS-Activate-style tooling. Swap your host, keep your code.
-            </p>
-          </div>
-          <button 
-            onClick={() => setFaqModalOpen(true)}
-            className="p-2.5 sm:px-4 sm:py-2.5 rounded-2xl bg-white border border-[#e5e7eb] text-[#0b1e5b] hover:bg-[#0b1e5b]/5 transition shadow-xs flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-            title="API Help & FAQ"
-          >
-            <QuestionMarkCircleIcon className="w-5 h-5 text-[#0b1e5b]" />
-            <span className="hidden sm:inline">FAQ</span>
-          </button>
+  <div className="pt-1">
+    <Link 
+      href="/docs" 
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#e5e7eb] text-[#0b1e5b] font-bold text-xs hover:bg-[#fdfdfc] transition shadow-xs"
+    >
+      <DocumentTextIcon className="w-4 h-4 text-[#6b7280]" /> Read the docs
+    </Link>
+  </div>
+
+  {successMsg && (
+    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-xs">
+      <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0" /> {successMsg}
+    </div>
+  )}
+
+  {/* Single-column vertical flow stretching edge to edge */}
+  <div className="space-y-8">
+    
+    {/* Request a Key Form */}
+    <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-sm font-black text-[#0b1e5b]">Request a key</h2>
+        <p className="text-xs text-[#6b7280]">
+          An admin reviews every request. Your key is emailed once on approval and never shown again.
+        </p>
+      </div>
+
+      <form onSubmit={handleRequestKey} className="space-y-6">
+        <div className="space-y-2">
+          <input 
+            type="text" 
+            value={keyName}
+            onChange={(e) => setKeyName(e.target.value)}
+            placeholder="e.g. main bot, staging, fallback"
+            required
+            className="w-full px-4 py-3.5 rounded-2xl border border-[#cbd5e1] bg-[#fdfdfc] text-xs font-medium text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#0b1e5b]/20 focus:border-[#0b1e5b] transition"
+          />
         </div>
 
-        <div className="pt-1">
-          <Link 
-            href="/docs" 
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#e5e7eb] text-[#0b1e5b] font-bold text-xs hover:bg-[#fdfdfc] transition shadow-xs"
-          >
-            <DocumentTextIcon className="w-4 h-4 text-[#6b7280]" /> Read the docs
-          </Link>
+        <div className="space-y-3">
+          <label className="block text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">
+            Scopes <span className="normal-case font-normal">(none = full access)</span>
+          </label>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
+              <input 
+                type="checkbox" 
+                checked={scopes.balance} 
+                onChange={() => handleScopeChange('balance')}
+                className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
+              />
+              <span className="text-xs font-bold text-[#0b1e5b]">Balance</span>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
+              <input 
+                type="checkbox" 
+                checked={scopes.prices} 
+                onChange={() => handleScopeChange('prices')}
+                className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
+              />
+              <span className="text-xs font-bold text-[#0b1e5b]">Prices</span>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
+              <input 
+                type="checkbox" 
+                checked={scopes.purchase} 
+                onChange={() => handleScopeChange('purchase')}
+                className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
+              />
+              <span className="text-xs font-bold text-[#0b1e5b]">Purchase</span>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
+              <input 
+                type="checkbox" 
+                checked={scopes.cancel} 
+                onChange={() => handleScopeChange('cancel')}
+                className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
+              />
+              <span className="text-xs font-bold text-[#0b1e5b]">Cancel</span>
+            </label>
+          </div>
         </div>
 
-        {successMsg && (
-          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-xs">
-            <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0" /> {successMsg}
-          </div>
-        )}
+        <div className="space-y-2">
+          <label className="block text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">
+            Expires <span className="normal-case font-normal">(optional)</span>
+          </label>
+          <input 
+            type="date" 
+            value={expires}
+            onChange={(e) => setExpires(e.target.value)}
+            className="w-full px-4 py-3.5 rounded-2xl border border-[#cbd5e1] bg-[#fdfdfc] text-xs font-medium text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#0b1e5b]/20 focus:border-[#0b1e5b] transition"
+          />
+        </div>
 
-        {/* Single-column vertical flow for mobile and desktop */}
-        <div className="space-y-8">
-          
-          {/* Request a Key Form */}
-          <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="space-y-1">
-              <h2 className="text-sm font-black text-[#0b1e5b]">Request a key</h2>
-              <p className="text-xs text-[#6b7280]">
-                An admin reviews every request. Your key is emailed once on approval and never shown again.
-              </p>
-            </div>
+        <button 
+          type="submit" 
+          disabled={submitting}
+          className="w-full py-4 rounded-2xl bg-[#0b1e5b] text-white font-bold text-xs hover:bg-[#0b1e5b]/90 transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          {submitting ? 'Submitting request...' : 'Submit request'}
+        </button>
+      </form>
+    </div>
 
-            <form onSubmit={handleRequestKey} className="space-y-6">
-              <div className="space-y-2">
-                <input 
-                  type="text" 
-                  value={keyName}
-                  onChange={(e) => setKeyName(e.target.value)}
-                  placeholder="e.g. main bot, staging, fallback"
-                  required
-                  className="w-full px-4 py-3.5 rounded-2xl border border-[#cbd5e1] bg-[#fdfdfc] text-xs font-medium text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#0b1e5b]/20 focus:border-[#0b1e5b] transition"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">
-                  Scopes <span className="normal-case font-normal">(none = full access)</span>
-                </label>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
-                    <input 
-                      type="checkbox" 
-                      checked={scopes.balance} 
-                      onChange={() => handleScopeChange('balance')}
-                      className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
-                    />
-                    <span className="text-xs font-bold text-[#0b1e5b]">Balance</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
-                    <input 
-                      type="checkbox" 
-                      checked={scopes.prices} 
-                      onChange={() => handleScopeChange('prices')}
-                      className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
-                    />
-                    <span className="text-xs font-bold text-[#0b1e5b]">Prices</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
-                    <input 
-                      type="checkbox" 
-                      checked={scopes.purchase} 
-                      onChange={() => handleScopeChange('purchase')}
-                      className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
-                    />
-                    <span className="text-xs font-bold text-[#0b1e5b]">Purchase</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5e7eb] bg-[#fdfdfc] cursor-pointer hover:bg-slate-50 transition">
-                    <input 
-                      type="checkbox" 
-                      checked={scopes.cancel} 
-                      onChange={() => handleScopeChange('cancel')}
-                      className="w-4 h-4 rounded text-[#0b1e5b] focus:ring-[#0b1e5b]"
-                    />
-                    <span className="text-xs font-bold text-[#0b1e5b]">Cancel</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">
-                  Expires <span className="normal-case font-normal">(optional)</span>
-                </label>
-                <input 
-                  type="date" 
-                  value={expires}
-                  onChange={(e) => setExpires(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-[#cbd5e1] bg-[#fdfdfc] text-xs font-medium text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#0b1e5b]/20 focus:border-[#0b1e5b] transition"
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={submitting}
-                className="w-full py-4 rounded-2xl bg-[#0b1e5b] text-white font-bold text-xs hover:bg-[#0b1e5b]/90 transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {submitting ? 'Submitting request...' : 'Submit request'}
-              </button>
-            </form>
-          </div>
-
-          {/* Your Keys Section */}
-          <div className="bg-white border border-[#e5e7eb] rounded-3xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-[#e5e7eb] flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-wider text-[#0b1e5b]">Your keys</h2>
-              <span className="text-[11px] font-bold text-[#6b7280]">{apiKeys.length} total</span>
-            </div>
-            <div className="grid grid-cols-3 px-5 py-2.5 bg-[#fdfdfc] border-b border-[#e5e7eb] text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">
-              <span>Name</span>
-              <span>Key</span>
-              <span className="text-right">Action</span>
-            </div>
-            <div className="divide-y divide-[#e5e7eb]">
-              {apiKeys.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[#6b7280]">No active API keys found.</div>
-              ) : (
-                apiKeys.map((k) => (
-                  <div key={k.id} className="grid grid-cols-3 p-5 items-center">
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold text-[#0b1e5b]">{k.name}</div>
-                      <div className="text-[10px] text-[#6b7280]">{k.created}</div>
-                    </div>
-                    <div className="font-mono text-xs font-bold text-[#6b7280] truncate pr-2">
-                      {k.key}
-                    </div>
-                    <div className="text-right">
-                      <button 
-                        onClick={() => confirmRevokeModal(k.id)}
-                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[10px] inline-flex items-center gap-1 transition cursor-pointer"
-                      >
-                        <TrashIcon className="w-3 h-3" /> Revoke
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Requests Section */}
-          <div className="bg-white border border-[#e5e7eb] rounded-3xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-[#e5e7eb]">
-              <h2 className="text-xs font-black uppercase tracking-wider text-[#0b1e5b]">Requests</h2>
-            </div>
-            <div className="divide-y divide-[#e5e7eb]">
-              {apiRequests.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[#6b7280]">No API key requests found.</div>
-              ) : (
-                apiRequests.map((req) => (
-                  <div key={req.id} className="p-5 flex items-center justify-between gap-4">
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold text-[#0b1e5b]">{req.name}</div>
-                      <div className="text-[10px] text-[#6b7280]">{req.date}</div>
-                    </div>
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      req.status === 'approved' 
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                        : req.status === 'rejected' 
-                        ? 'bg-red-50 text-red-700 border border-red-200' 
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                      {req.status === 'approved' ? <CheckCircleIcon className="w-3 h-3" /> : <ClockIcon className="w-3 h-3" />}
-                      {req.status}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* API Documentation Box */}
-          <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 shadow-sm flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#0b1e5b]/5 flex items-center justify-center text-[#0b1e5b] shrink-0">
-                <DocumentTextIcon className="w-5 h-5" />
-              </div>
+    {/* Your Keys Section */}
+    <div className="bg-white border border-[#e5e7eb] rounded-3xl shadow-sm overflow-hidden">
+      <div className="p-5 border-b border-[#e5e7eb] flex items-center justify-between">
+        <h2 className="text-xs font-black uppercase tracking-wider text-[#0b1e5b]">Your keys</h2>
+        <span className="text-[11px] font-bold text-[#6b7280]">{apiKeys.length} total</span>
+      </div>
+      <div className="grid grid-cols-3 px-5 py-2.5 bg-[#fdfdfc] border-b border-[#e5e7eb] text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">
+        <span>Name</span>
+        <span>Key</span>
+        <span className="text-right">Action</span>
+      </div>
+      <div className="divide-y divide-[#e5e7eb]">
+        {apiKeys.length === 0 ? (
+          <div className="p-6 text-center text-xs text-[#6b7280]">No active API keys found.</div>
+        ) : (
+          apiKeys.map((k) => (
+            <div key={k.id} className="grid grid-cols-3 p-5 items-center">
               <div className="space-y-0.5">
-                <h3 className="text-xs font-black text-[#0b1e5b]">API documentation</h3>
-                <p className="text-[11px] text-[#6b7280]">Getting started, authentication, endpoints, and error reference.</p>
+                <div className="text-xs font-bold text-[#0b1e5b]">{k.name}</div>
+                <div className="text-[10px] text-[#6b7280]">{k.created}</div>
+              </div>
+              <div className="font-mono text-xs font-bold text-[#6b7280] truncate pr-2">
+                {k.key}
+              </div>
+              <div className="text-right">
+                <button 
+                  onClick={() => confirmRevokeModal(k.id)}
+                  className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[10px] inline-flex items-center gap-1 transition cursor-pointer"
+                >
+                  <TrashIcon className="w-3 h-3" /> Revoke
+                </button>
               </div>
             </div>
-            <Link href="/docs" className="px-4 py-2.5 rounded-xl bg-[#0b1e5b]/5 hover:bg-[#0b1e5b]/10 text-[#0b1e5b] font-bold text-xs transition shrink-0">
-              View
-            </Link>
-          </div>
+          ))
+        )}
+      </div>
+    </div>
 
+    {/* Requests Section */}
+    <div className="bg-white border border-[#e5e7eb] rounded-3xl shadow-sm overflow-hidden">
+      <div className="p-5 border-b border-[#e5e7eb]">
+        <h2 className="text-xs font-black uppercase tracking-wider text-[#0b1e5b]">Requests</h2>
+      </div>
+      <div className="divide-y divide-[#e5e7eb]">
+        {apiRequests.length === 0 ? (
+          <div className="p-6 text-center text-xs text-[#6b7280]">No API key requests found.</div>
+        ) : (
+          apiRequests.map((req) => (
+            <div key={req.id} className="p-5 flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <div className="text-xs font-bold text-[#0b1e5b]">{req.name}</div>
+                <div className="text-[10px] text-[#6b7280]">{req.date}</div>
+              </div>
+              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                req.status === 'approved' 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                  : req.status === 'rejected' 
+                  ? 'bg-red-50 text-red-700 border border-red-200' 
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                {req.status === 'approved' ? <CheckCircleIcon className="w-3 h-3" /> : <ClockIcon className="w-3 h-3" />}
+                {req.status}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+
+    {/* API Documentation Box */}
+    <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 shadow-sm flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-[#0b1e5b]/5 flex items-center justify-center text-[#0b1e5b] shrink-0">
+          <DocumentTextIcon className="w-5 h-5" />
         </div>
+        <div className="space-y-0.5">
+          <h3 className="text-xs font-black text-[#0b1e5b]">API documentation</h3>
+          <p className="text-[11px] text-[#6b7280]">Getting started, authentication, endpoints, and error reference.</p>
+        </div>
+      </div>
+      <Link href="/docs" className="px-4 py-2.5 rounded-xl bg-[#0b1e5b]/5 hover:bg-[#0b1e5b]/10 text-[#0b1e5b] font-bold text-xs transition shrink-0">
+        View
+      </Link>
+    </div>
 
-      </main>
+  </div>
 
+</main>
 
-
+      
       {/* Custom Revoke Confirmation Modal */}
       {revokeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
