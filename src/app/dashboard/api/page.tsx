@@ -203,9 +203,15 @@ export default function ApiHubPage() {
     setScopes(prev => ({ ...prev, [scopeKey]: !prev[scopeKey] }));
   };
 
-  const handleRequestKey = async (e: React.FormEvent) => {
+    const handleRequestKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!keyName.trim() || !user) return;
+
+    // Prevent spam by capping active keys at 5
+    if (apiKeys.length >= 5) {
+      setSuccessMsg('Error: You have reached the maximum limit of 5 active API keys.');
+      return;
+    }
 
     setSubmitting(true);
     setSuccessMsg('');
@@ -244,6 +250,7 @@ export default function ApiHubPage() {
       }
     }
   };
+
 
   const confirmRevokeModal = (keyId: string) => {
     setKeyToRevoke(keyId);
@@ -439,9 +446,10 @@ export default function ApiHubPage() {
         </div>
       )}
       
-      {/* Main Reseller API Content Area - Optimized for Desktop & Mobile */}
-      <main className="flex-1 max-w-4xl w-full mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
-        
+      {/* Main Reseller API Content Area - Expanded for Desktop */}
+      <main className="flex-1 max-w-7xl w-full mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
+
+
           {/* Breadcrumb & Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
