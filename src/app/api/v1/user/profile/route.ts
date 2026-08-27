@@ -55,7 +55,8 @@ export async function GET(request: Request) {
         : apiKeyData.scopes;
 
       if (scopes && scopes.balance === false) {
-        return { error: 'This API key lacks permission to access account details (balance scope is disabled).', status: 403 };
+        // FIXED: Wrapped in NextResponse.json instead of returning a plain object
+        return NextResponse.json({ error: 'This API key lacks permission to access account details (balance scope is disabled).' }, { status: 403 });
       }
     } catch (parseErr) {
       console.error('[API AUTH] Failed to parse scopes JSON:', parseErr);
