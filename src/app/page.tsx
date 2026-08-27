@@ -582,7 +582,7 @@ If you need to verify the same service again, simply rent a new virtual number. 
           <h4 className="font-bold text-emerald-400 uppercase text-[10px] tracking-wider">Product</h4>
           <ul className="space-y-1 text-[#e5e7eb]/80 font-medium">
             <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
-            <li><Link href="/api" className="hover:text-white">API Docs</Link></li>
+            <li><Link href="/docs" className="hover:text-white">API Docs</Link></li>
             <li><Link href="/about" className="hover:text-white">About</Link></li>
           </ul>
         </div>

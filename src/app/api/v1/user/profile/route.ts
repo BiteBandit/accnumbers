@@ -23,10 +23,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing or invalid API token' }, { status: 401 });
     }
 
-    // 1. Verify the API key and get user_id
+    // 1. Verify the API key and fetch its details including status, expires_at, and scopes
     const { data: apiKeyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
-      .select('user_id')
+      .select('*')
       .eq('key', token)
       .single();
 
@@ -34,10 +34,38 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid API key' }, { status: 401 });
     }
 
-    // 2. Fetch user profile / auth details from Supabase Auth admin API or a profiles table
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(apiKeyData.user_id);
+    // 2. Validate Status
+    if (apiKeyData.status !== 'active') {
+      return NextResponse.json({ error: `API key is inactive (Status: ${apiKeyData.status})` }, { status: 403 });
+    }
+
+    // 3. Validate Expiration Date (if expires_at is set)
+    if (apiKeyData.expires_at) {
+      const expirationDate = new Date(apiKeyData.expires_at);
+      const now = new Date();
+      if (expirationDate <= now) {
+        return NextResponse.json({ error: 'API key has expired' }, { status: 403 });
+      }
+    }
+
+    // 4. Validate Scopes (Ensuring 'balance' or general profile access scope is enabled)
+    try {
+      const scopes = typeof apiKeyData.scopes === 'string' 
+        ? JSON.parse(apiKeyData.scopes) 
+        : apiKeyData.scopes;
+
+      if (scopes && scopes.balance === false) {
+        return { error: 'This API key lacks permission to access account details (balance scope is disabled).', status: 403 };
+      }
+    } catch (parseErr) {
+      console.error('[API AUTH] Failed to parse scopes JSON:', parseErr);
+      return NextResponse.json({ error: 'Malformed API key scopes configuration.' }, { status: 403 });
+    }
+
+    // 5. Fetch user profile / auth details from Supabase Auth admin API
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(apiKeyData.user_id);
     
-    // 3. Fetch wallet balance
+    // 6. Fetch wallet balance
     const { data: walletData } = await supabaseAdmin
       .from('wallets')
       .select('balance, frozen_balance')
@@ -46,7 +74,7 @@ export async function GET(request: Request) {
 
     const userEmail = userData?.user?.email || 'user@accnumbers.com';
 
-    // 4. Return the exact 5-SIM style JSON structure
+    // 7. Return the exact 5-SIM style JSON structure
     return NextResponse.json({
       id: apiKeyData.user_id,
       email: userEmail,

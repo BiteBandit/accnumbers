@@ -22,10 +22,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing or invalid API token' }, { status: 401 });
     }
 
-    // 1. Authenticate user via API key
+    // 1. Fetch API key record to validate credentials, status, expiration, and scopes
     const { data: apiKeyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
-      .select('user_id')
+      .select('*')
       .eq('key', token)
       .single();
 
@@ -33,12 +33,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid API key' }, { status: 401 });
     }
 
-    // 2. Parse query parameters
+    // 2. Validate Status
+    if (apiKeyData.status !== 'active') {
+      return NextResponse.json({ error: `API key is inactive (Status: ${apiKeyData.status})` }, { status: 403 });
+    }
+
+    // 3. Validate Expiration Date (if expires_at is set)
+    if (apiKeyData.expires_at) {
+      const expirationDate = new Date(apiKeyData.expires_at);
+      const now = new Date();
+      if (expirationDate <= now) {
+        return NextResponse.json({ error: 'API key has expired' }, { status: 403 });
+      }
+    }
+
+    // 4. Validate Scopes (Ensuring 'balance' scope is enabled out of your 4 allowed scopes)
+    try {
+      const scopes = typeof apiKeyData.scopes === 'string' 
+        ? JSON.parse(apiKeyData.scopes) 
+        : apiKeyData.scopes;
+
+      if (scopes && scopes.balance === false) {
+        return NextResponse.json({ error: 'This API key lacks permission to access transaction records (balance scope is disabled).' }, { status: 403 });
+      }
+    } catch (parseErr) {
+      console.error('[API AUTH] Failed to parse scopes JSON:', parseErr);
+      return NextResponse.json({ error: 'Malformed API key scopes configuration.' }, { status: 403 });
+    }
+
+    // 5. Parse query parameters (with pagination support)
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '15', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // 3. Query your existing `transactions` table
+    // 6. Query your existing `transactions` table using verified user_id
     const { data: txData, count, error: txError } = await supabaseAdmin
       .from('transactions')
       .select('*', { count: 'exact' })
@@ -56,7 +84,7 @@ export async function GET(request: Request) {
       }, { status: 200 });
     }
 
-    // 4. Map your columns precisely to 5-SIM schema format
+    // 7. Map your columns precisely to 5-SIM schema format
     const formattedData = (txData || []).map((row) => ({
       ID: row.idx,
       TypeName: row.type, // e.g., 'debit', 'credit', 'refund'
