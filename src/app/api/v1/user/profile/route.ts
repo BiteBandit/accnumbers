@@ -68,22 +68,29 @@ export async function GET(request: Request) {
     // 5. Fetch user profile / auth details
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(apiKeyData.user_id);
     
-    // 6. Fetch wallet balance
-    const { data: walletData } = await supabaseAdmin
+    // 6. Fetch wallet balance (selecting only balance since frozen_balance doesn't exist yet)
+    const { data: walletData, error: walletError } = await supabaseAdmin
       .from('wallets')
-      .select('balance, frozen_balance')
+      .select('balance')
       .eq('user_id', apiKeyData.user_id)
       .single();
 
+    if (walletError) {
+      console.error('[WALLET ERROR]', walletError);
+    }
+
+    // Parse the string balance ("1687.00") into a valid number
+    const currentBalance = walletData?.balance ? parseFloat(walletData.balance) : 0;
+
     const userEmail = userData?.user?.email || 'user@accnumbers.com';
 
-    // 7. Return final response
+    // 7. Return final response with the parsed balance
     return NextResponse.json({
       id: apiKeyData.user_id,
       email: userEmail,
       vendor: "accnumbers",
       default_forwarding_number: "",
-      balance: Number(walletData?.balance ?? 0),
+      balance: currentBalance,
       rating: 100,
       default_country: {
         name: "nigeria",
@@ -93,7 +100,7 @@ export async function GET(request: Request) {
       default_operator: {
         name: "any"
       },
-      frozen_balance: Number(walletData?.frozen_balance ?? 0)
+      frozen_balance: 0
     }, { status: 200 });
 
   } catch (err: any) {
