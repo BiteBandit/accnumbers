@@ -40,7 +40,7 @@ export default function ApiDocsPage() {
               </div>
               <h2 className="text-lg font-black text-[#0b1e5b]">User Profile &amp; Balance</h2>
               <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
-                This endpoint allows authenticated users to fetch their account details, current vendor profile, and live wallet balances (including available balance and frozen funds) formatted identically to standard 5-SIM specifications.
+                This endpoint allows authenticated users to fetch their account details, current vendor profile, and live wallet balances (including available balance and frozen funds).
               </p>
             </div>
 
@@ -219,7 +219,7 @@ export default function ApiDocsPage() {
 
           </div>
 
-        </div>
+        
 
                   {/* Endpoint: User Payments & Transactions */}
           <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
@@ -444,7 +444,7 @@ export default function ApiDocsPage() {
               </div>
               <h2 className="text-lg font-black text-[#0b1e5b]">User Orders &amp; Rentals</h2>
               <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
-                This endpoint allows authenticated users to retrieve their virtual phone number rentals and order histories with pagination support, formatted precisely according to standard 5-SIM specifications.
+                This endpoint allows authenticated users to retrieve their virtual phone number rentals and order histories with pagination support.
               </p>
             </div>
 
@@ -655,6 +655,313 @@ export default function ApiDocsPage() {
           </div>
 
 
+          {/* Endpoint: Global Guest Prices */}
+          <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">GET</span>
+                <span className="text-xs font-mono font-bold text-[#0b1e5b]">/api/v1/guest/prices</span>
+              </div>
+              <h2 className="text-lg font-black text-[#0b1e5b]">Global Guest Prices Catalog</h2>
+              <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
+                This public endpoint retrieves real-time pricing catalogs for virtual number activations and services. It automatically applies your database markup configurations and local currency conversions without requiring API key authentication.
+              </p>
+            </div>
+
+            {/* Authentication requirements note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Access Requirement:</span> Publicly accessible. No API key or authorization header is required to query this endpoint.
+            </div>
+
+            {/* Query Parameters note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Query Parameters (Optional):</span>
+              <ul className="list-disc pl-5 pt-1 space-y-1 text-gray-600">
+                <li><code className="font-mono">country</code>: Filter pricing data by a specific country name or code (e.g., <code className="font-mono">england</code>).</li>
+                <li><code className="font-mono">product</code>: Filter pricing data by a specific application or service product code (e.g., <code className="font-mono">facebook</code>).</li>
+              </ul>
+            </div>
+
+            {/* Code Block Terminal */}
+            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 shadow-xl space-y-6 text-slate-200 font-mono">
+              <div className="flex items-center justify-between border-b border-[#222222] pb-3 text-xs">
+                <span className="text-emerald-400 font-bold"># Request Examples (cURL)</span>
+                <span className="text-slate-500 uppercase tracking-widest text-[10px]">terminal</span>
+              </div>
+
+              <div className="space-y-4 text-xs overflow-x-auto">
+                <div>
+                  <div className="text-slate-500 pb-1"># 1. Get All Prices Globally</div>
+                  <div className="text-cyan-400">curl &quot;https://www.accnumbers.com/api/v1/guest/prices&quot; \</div>
+                  <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+                </div>
+
+                <div>
+                  <div className="text-slate-500 pb-1"># 2. Filter by Country Only</div>
+                  <div className="text-cyan-400">curl &quot;https://www.accnumbers.com/api/v1/guest/prices?country=england&quot; \</div>
+                  <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+                </div>
+
+                <div>
+                  <div className="text-slate-500 pb-1"># 3. Filter by Product Only</div>
+                  <div className="text-cyan-400">curl &quot;https://www.accnumbers.com/api/v1/guest/prices?product=facebook&quot; \</div>
+                  <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+                </div>
+
+                <div>
+                  <div className="text-slate-500 pb-1"># 4. Filter by Both Country and Product</div>
+                  <div className="text-cyan-400">curl &quot;https://www.accnumbers.com/api/v1/guest/prices?country=england&amp;product=facebook&quot; \</div>
+                  <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+                </div>
+              </div>
+
+              <div className="border-t border-[#222222] pt-3 space-y-2">
+                <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
+                <div className="text-amber-300 text-xs overflow-x-auto">
+                  <pre>{`{
+  "england": {
+    "facebook": {
+      "any": {
+        "cost": 1500,
+        "count": 42,
+        "rate": 1.0
+      }
+    }
+  }
+}`}</pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Responses Breakdown */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Error Messages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">500 Internal Error</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Missing Env Key</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;API key is missing in server environment variables.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the backend server environment lacks the required upstream provider API configuration.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">502 Bad Gateway</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Parse Failure</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Failed to parse provider JSON payload.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered if the upstream pricing provider returns a malformed or non-JSON response body.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Field Description Table */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Response Field Descriptions</h3>
+              <div className="overflow-x-auto border border-[#e5e7eb] rounded-2xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#f8fafc] text-[#0b1e5b] border-b border-[#e5e7eb]">
+                    <tr>
+                      <th className="p-3.5 font-bold">Field</th>
+                      <th className="p-3.5 font-bold">Type</th>
+                      <th className="p-3.5 font-bold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">country_key</td>
+                      <td className="p-3.5 font-mono">Object / Array</td>
+                      <td className="p-3.5">Top-level keys representing specific countries available for service.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">product_key</td>
+                      <td className="p-3.5 font-mono">Object / Array</td>
+                      <td className="p-3.5">Nested keys under each country representing application/service IDs (e.g., <code className="font-mono">facebook</code>, <code className="font-mono">tg</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">operator_name</td>
+                      <td className="p-3.5 font-mono">Object</td>
+                      <td className="p-3.5">Network operator identifier mapping (e.g., <code className="font-mono">any</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">cost</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">The final calculated cost converted to local currency(NGN).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">count</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">Available stock quantity of phone numbers for that category.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">rate</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">Upstream pricing multiplier or tier rating metric.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Endpoint: Guest Products by Country & Operator */}
+          <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">GET</span>
+                <span className="text-xs font-mono font-bold text-[#0b1e5b]">/api/v1/guest/products/{'{country}'}/{'{operator}'}</span>
+              </div>
+              <h2 className="text-lg font-black text-[#0b1e5b]">Guest Products Catalog by Country &amp; Operator</h2>
+              <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
+                This public endpoint retrieves real-time product stocks and dynamic activation prices for a specified country and network operator combination. It automatically applies your database markup configurations and local currency conversions without requiring API key authentication.
+              </p>
+            </div>
+
+            {/* Authentication requirements note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Access Requirement:</span> Publicly accessible. No API key or authorization header is required to query this endpoint.
+            </div>
+
+            {/* Path Parameters note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Path Parameters (Required):</span>
+              <ul className="list-disc pl-5 pt-1 space-y-1 text-gray-600">
+                <li><code className="font-mono">country</code>: The target country code or name (e.g., <code className="font-mono">england</code>).</li>
+                <li><code className="font-mono">operator</code>: The target telecommunication network operator name (e.g., <code className="font-mono">any</code>).</li>
+              </ul>
+            </div>
+
+            {/* Code Block Terminal */}
+            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 shadow-xl space-y-6 text-slate-200 font-mono">
+              <div className="flex items-center justify-between border-b border-[#222222] pb-3 text-xs">
+                <span className="text-emerald-400 font-bold"># Request Example (cURL)</span>
+                <span className="text-slate-500 uppercase tracking-widest text-[10px]">terminal</span>
+              </div>
+
+              <div className="space-y-2 text-xs overflow-x-auto">
+                <div className="text-cyan-400">curl &quot;https://www.accnumbers.com/api/v1/guest/products/${'{country}'}/${'{operator}'}&quot; \</div>
+                <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+              </div>
+
+              <div className="border-t border-[#222222] pt-3 space-y-2">
+                <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
+                <div className="text-amber-300 text-xs overflow-x-auto">
+                  <pre>{`{
+  "facebook": {
+    "Category": "activation",
+    "Qty": 42,
+    "Price": 1500
+  }
+}`}</pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Responses Breakdown */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Error Messages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">400 Bad Request</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Missing Params</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Missing country or operator path parameters.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when either the country or operator segment is omitted from the request route path.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">500 Internal Error</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Missing Env Key</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;API key is missing in server environment variables.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the backend server environment lacks the required upstream provider API configuration.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa] md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">502 Bad Gateway</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Parse Failure</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Failed to parse provider JSON payload.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered if the upstream pricing provider returns a malformed or non-JSON response body.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Field Description Table */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Response Field Descriptions</h3>
+              <div className="overflow-x-auto border border-[#e5e7eb] rounded-2xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#f8fafc] text-[#0b1e5b] border-b border-[#e5e7eb]">
+                    <tr>
+                      <th className="p-3.5 font-bold">Field</th>
+                      <th className="p-3.5 font-bold">Type</th>
+                      <th className="p-3.5 font-bold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">product_name</td>
+                      <td className="p-3.5 font-mono">String (Key)</td>
+                      <td className="p-3.5">The unique identification key of the target service product (e.g., <code className="font-mono">facebook</code>, <code className="font-mono">tg</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">Category</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The classification category type of the activation product (e.g., <code className="font-mono">activation</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">Qty</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">The available real-time active stock count of numbers for the service.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">Price</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">The final converted local price calculated with your custom database markup rules applied.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+
+          
+</div>
 
       </main>
     </div>
