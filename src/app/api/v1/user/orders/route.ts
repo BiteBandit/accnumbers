@@ -22,10 +22,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing or invalid API token' }, { status: 401 });
     }
 
-    // 1. Authenticate user via API key
+    // 1. Fetch API key record to validate credentials, status, expiration, and scopes
     const { data: apiKeyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
-      .select('user_id')
+      .select('*')
       .eq('key', token)
       .single();
 
@@ -33,12 +33,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid API key' }, { status: 401 });
     }
 
-    // 2. Parse query parameters
+    // 2. Validate Status
+    if (apiKeyData.status !== 'active') {
+      return NextResponse.json({ error: `API key is inactive (Status: ${apiKeyData.status})` }, { status: 403 });
+    }
+
+    // 3. Validate Expiration Date (if expires_at is set)
+    if (apiKeyData.expires_at) {
+      const expirationDate = new Date(apiKeyData.expires_at);
+      const now = new Date();
+      if (expirationDate <= now) {
+        return NextResponse.json({ error: 'API key has expired' }, { status: 403 });
+      }
+    }
+
+    // 4. Validate Scopes (Ensuring 'purchase' scope is enabled for order/rental management)
+    try {
+      const scopes = typeof apiKeyData.scopes === 'string' 
+        ? JSON.parse(apiKeyData.scopes) 
+        : apiKeyData.scopes;
+
+      if (scopes && scopes.purchase === false) {
+        return NextResponse.json({ error: 'This API key lacks permission to access order/rental records (purchase scope is disabled).' }, { status: 403 });
+      }
+    } catch (parseErr) {
+      console.error('[API AUTH] Failed to parse scopes JSON:', parseErr);
+      return NextResponse.json({ error: 'Malformed API key scopes configuration.' }, { status: 403 });
+    }
+
+    // 5. Parse query parameters
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '15', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // 3. Query your actual `rentals` table
+    // 6. Query your actual `rentals` table using verified user_id
     const { data: rentalsData, count, error: rentalsError } = await supabaseAdmin
       .from('rentals')
       .select('*', { count: 'exact' })
@@ -56,9 +84,8 @@ export async function GET(request: Request) {
       }, { status: 200 });
     }
 
-    // 4. Map your `rentals` columns precisely to the 5-SIM schema format
+    // 7. Map your `rentals` columns precisely to the 5-SIM schema format
     const formattedData = (rentalsData || []).map((row) => {
-      // Handle case where `sms` might be stored as a stringified JSON or an array
       let parsedSms = [];
       try {
         parsedSms = typeof row.sms === 'string' ? JSON.parse(row.sms) : (row.sms || []);
@@ -67,12 +94,12 @@ export async function GET(request: Request) {
       }
 
       return {
-        id: row.idx, // Using your numeric index or use row.id if you prefer UUID
+        id: row.idx, 
         phone: row.phone_number,
         operator: row.operator || 'any',
-        product: row.service, // Maps your 'service' to 5-sim's 'product'
-        price: Number(row.amount || 0), // Maps your 'amount' to 5-sim's 'price'
-        status: (row.status || 'PENDING').toUpperCase(), // e.g., FINISHED, PENDING
+        product: row.service, 
+        price: Number(row.amount || 0), 
+        status: (row.status || 'PENDING').toUpperCase(), 
         expires: row.expires_at,
         sms: parsedSms,
         created_at: row.created_at,
