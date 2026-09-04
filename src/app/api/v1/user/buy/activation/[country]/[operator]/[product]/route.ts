@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabaseClient';
 
-// Initialize a dedicated server-side admin client to bypass RLS for API key validation
+// Initialize a dedicated server-side admin client to bypass RLS for all internal queries
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -11,7 +10,7 @@ const supabaseAdmin = createClient(
 
 async function getPricingConfig() {
   try {
-    const { data } = await supabase.from('settings').select('key, value');
+    const { data } = await supabaseAdmin.from('settings').select('key, value');
     if (!data) return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
 
     const markupRow = data.find((row) => row.key === 'markup_multiplier');
@@ -57,7 +56,7 @@ export async function GET(
 
     console.log('[API DEBUG] Searching for API key using admin client:', token);
 
-    // Validate API key and check status in Supabase using supabaseAdmin to bypass RLS restrictions
+    // Validate API key and check status using supabaseAdmin
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
       .select('*')
@@ -130,8 +129,8 @@ export async function GET(
 
     const finalPrice = Math.ceil(baseUsdPrice * defaultMarkup * usdToNgnRate);
 
-    // Check user wallet balance
-    const { data: profileData, error: profileError } = await supabase
+    // Check user wallet balance using supabaseAdmin
+    const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('balance')
       .eq('id', userId)
@@ -172,9 +171,9 @@ export async function GET(
       );
     }
 
-    // Deduct user balance and save order log in Supabase
+    // Deduct user balance and save order log in Supabase using supabaseAdmin
     const newBalance = Number(profileData.balance) - finalPrice;
-    await supabase.from('profiles').update({ balance: newBalance }).eq('id', userId);
+    await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', userId);
 
     const orderRecord = {
       user_id: userId,
@@ -189,7 +188,7 @@ export async function GET(
       sms: [],
     };
 
-    const { data: insertedOrder, error: insertError } = await supabase
+    const { data: insertedOrder, error: insertError } = await supabaseAdmin
       .from('orders')
       .insert([orderRecord])
       .select()
