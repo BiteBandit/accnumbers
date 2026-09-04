@@ -47,7 +47,7 @@ export async function GET(
       );
     }
 
-    // Validate API key and check purchase scope / status in Supabase
+    // Validate API key and check status in Supabase
     const { data: keyData, error: keyError } = await supabase
       .from('api_keys')
       .select('*, users(*)')
@@ -61,7 +61,15 @@ export async function GET(
       );
     }
 
-    if (keyData.scopes && !keyData.scopes.includes('purchase')) {
+    // Safely parse JSON scopes object/string check
+    let scopesObj: Record<string, boolean> = {};
+    try {
+      scopesObj = typeof keyData.scopes === 'string' ? JSON.parse(keyData.scopes) : keyData.scopes;
+    } catch (e) {
+      scopesObj = {};
+    }
+
+    if (!scopesObj || !scopesObj.purchase) {
       return NextResponse.json(
         { error: 'This API key lacks permission to purchase numbers (purchase scope is disabled).' },
         { status: 403 }
