@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
+
+// Initialize a dedicated server-side admin client to bypass RLS for API key validation
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+);
 
 async function getPricingConfig() {
   try {
@@ -47,12 +55,10 @@ export async function GET(
       );
     }
 
-    console.log('[API DEBUG] Searching for API key:', token);
+    console.log('[API DEBUG] Searching for API key using admin client:', token);
 
-    // Validate API key and check status in Supabase
-    // Note: Removed the invalid nested relation `.select('*, users(*)')` 
-    // which was likely causing the query error if a strict foreign key relation wasn't defined.
-    const { data: keyData, error: keyError } = await supabase
+    // Validate API key and check status in Supabase using supabaseAdmin to bypass RLS restrictions
+    const { data: keyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
       .select('*')
       .eq('key', token)
