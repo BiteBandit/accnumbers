@@ -47,16 +47,26 @@ export async function GET(
       );
     }
 
+    console.log('[API DEBUG] Searching for API key:', token);
+
     // Validate API key and check status in Supabase
+    // Note: Removed the invalid nested relation `.select('*, users(*)')` 
+    // which was likely causing the query error if a strict foreign key relation wasn't defined.
     const { data: keyData, error: keyError } = await supabase
       .from('api_keys')
-      .select('*, users(*)')
+      .select('*')
       .eq('key', token)
       .single();
 
+    console.log('[API DEBUG] Supabase keyData result:', keyData);
+    console.log('[API DEBUG] Supabase keyError result:', keyError);
+
     if (keyError || !keyData || keyData.status !== 'active') {
       return NextResponse.json(
-        { error: 'Invalid or inactive API key.' },
+        { 
+          error: 'Invalid or inactive API key.', 
+          details: keyError?.message || 'No matching active key found' 
+        },
         { status: 401 }
       );
     }
