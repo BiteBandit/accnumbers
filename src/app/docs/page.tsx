@@ -959,6 +959,210 @@ export default function ApiDocsPage() {
 
           </div>
 
+          {/* Endpoint: User Buy Activation */}
+          <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">GET</span>
+                <span className="text-xs font-mono font-bold text-[#0b1e5b]">/api/v1/user/buy/activation/{'{country}'}/{'{operator}'}/{'{product}'}</span>
+              </div>
+              <h2 className="text-lg font-black text-[#0b1e5b]">User Buy Activation</h2>
+              <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
+                This endpoint allows authenticated users to purchase a virtual phone number activation for a specific country, operator, and service product. It automatically checks user wallet balances, deducts the funds, logs the transaction, sends an in-app notification, and registers the order.
+              </p>
+            </div>
+
+            {/* Authentication requirements note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Authentication Requirement:</span> Requires a valid API key with an active status, a valid expiration date, and the <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">purchase</code> scope enabled. Pass your key via the <code className="font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header or the <code className="font-mono">x-api-key</code> custom header.
+            </div>
+
+            {/* Path Parameters note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Path Parameters (Required):</span>
+              <ul className="list-disc pl-5 pt-1 space-y-1 text-gray-600">
+                <li><code className="font-mono">country</code>: Target country name or code in lowercase (e.g., <code className="font-mono">canada</code>).</li>
+                <li><code className="font-mono">operator</code>: Specific mobile network operator name or wildcard <code className="font-mono">any</code> (e.g., <code className="font-mono">any</code>).</li>
+                <li><code className="font-mono">product</code>: Target service or application name in lowercase (e.g., <code className="font-mono">tiktok</code>).</li>
+              </ul>
+            </div>
+
+            {/* Code Block Terminal */}
+            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 shadow-xl space-y-6 text-slate-200 font-mono">
+              <div className="flex items-center justify-between border-b border-[#222222] pb-3 text-xs">
+                <span className="text-emerald-400 font-bold"># Request Example (cURL)</span>
+                <span className="text-slate-500 uppercase tracking-widest text-[10px]">terminal</span>
+              </div>
+
+              <div className="space-y-2 text-xs overflow-x-auto">
+                <div className="text-cyan-400">curl -X GET &quot;https://www.accnumbers.com/api/v1/user/buy/activation/canada/any/tiktok&quot; \</div>
+                <div className="text-slate-300 pl-4">-H &quot;Authorization: Bearer acc_test_6ede12ca9a8ab629ab207f5346140cea&quot; \</div>
+                <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+              </div>
+
+              <div className="border-t border-[#222222] pt-3 space-y-2">
+                <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
+                <div className="text-amber-300 text-xs overflow-x-auto">
+                  <pre>{`{
+  "id": 1084665247,
+  "phone": "+18258520792",
+  "operator": "any",
+  "product": "tiktok",
+  "price": 123,
+  "status": "PENDING",
+  "expires": "2026-09-04T11:18:34.109447399Z",
+  "sms": [],
+  "created_at": "2026-09-04T10:58:34.623918+00:00",
+  "country": "canada"
+}`}</pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Error Messages Breakdown */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Detailed Error Messages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">400 Bad Request</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Missing Params</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Missing country, operator, or product path parameters.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when any required path segment is missing from the request URL.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">400 Bad Request</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Insufficient Funds</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Insufficient wallet balance to complete this purchase.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the user wallet balance is less than the calculated price of the activation product.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">401 Unauthorized</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Missing Token</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Missing or invalid API token&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when no valid authorization header or token is provided.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">403 Forbidden</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Scope Mismatch</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;This API key lacks permission to purchase numbers (purchase scope is disabled).&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the key has the <code className="font-mono">purchase</code> scope explicitly disabled.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa] md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">502 Bad Gateway</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Provider Error</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Upstream provider failed to fulfill the purchase order.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the external activation provider encounters an error or returns a failure response during fulfillment.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Field Description Table */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Response Field Descriptions</h3>
+              <div className="overflow-x-auto border border-[#e5e7eb] rounded-2xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#f8fafc] text-[#0b1e5b] border-b border-[#e5e7eb]">
+                    <tr>
+                      <th className="p-3.5 font-bold">Field</th>
+                      <th className="p-3.5 font-bold">Type</th>
+                      <th className="p-3.5 font-bold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">id</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">The unique upstream order identification number.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">phone</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The virtual phone number assigned for activation.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">operator</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The network operator selected or resolved for the order.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">product</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The target product or application code (e.g., <code className="font-mono">tiktok</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">price</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">The final cost deducted from the user wallet.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The order status state (e.g., <code className="font-mono">PENDING</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">expires</td>
+                      <td className="p-3.5 font-mono">String (ISO 8601)</td>
+                      <td className="p-3.5">Timestamp indicating when the activation window expires.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">sms</td>
+                      <td className="p-3.5 font-mono">Array</td>
+                      <td className="p-3.5">List of incoming SMS messages received for the activation.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">created_at</td>
+                      <td className="p-3.5 font-mono">String (ISO 8601)</td>
+                      <td className="p-3.5">Timestamp indicating when the order was created.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">country</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The country selected for the activation order.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
 
           
 </div>

@@ -54,17 +54,12 @@ export async function GET(
       );
     }
 
-    console.log('[API DEBUG] Searching for API key using admin client:', token);
-
     // Validate API key and check status using supabaseAdmin
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
       .select('*')
       .eq('key', token)
       .single();
-
-    console.log('[API DEBUG] Supabase keyData result:', keyData);
-    console.log('[API DEBUG] Supabase keyError result:', keyError);
 
     if (keyError || !keyData || keyData.status !== 'active') {
       return NextResponse.json(
@@ -76,7 +71,6 @@ export async function GET(
       );
     }
 
-    // Safely parse JSON scopes object/string check
     let scopesObj: Record<string, boolean> = {};
     try {
       scopesObj = typeof keyData.scopes === 'string' ? JSON.parse(keyData.scopes) : keyData.scopes;
@@ -129,16 +123,19 @@ export async function GET(
 
     const finalPrice = Math.ceil(baseUsdPrice * defaultMarkup * usdToNgnRate);
 
-    // Check user wallet balance using supabaseAdmin
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('balance')
-      .eq('id', userId)
+    // Check user wallet balance from the wallets table using supabaseAdmin
+    const { data: walletData, error: walletError } = await supabaseAdmin
+      .from('wallets')
+      .select('id, balance')
+      .eq('user_id', userId)
       .single();
 
-    if (profileError || !profileData || Number(profileData.balance) < finalPrice) {
+    if (walletError || !walletData || Number(walletData.balance) < finalPrice) {
       return NextResponse.json(
-        { error: 'Insufficient wallet balance to complete this purchase.' },
+        { 
+          error: 'Insufficient wallet balance to complete this purchase.',
+          details: walletError?.message || `Current wallet balance (${walletData?.balance ?? 'unknown'}) is less than required price (${finalPrice})`
+        },
         { status: 400 }
       );
     }
@@ -156,7 +153,7 @@ export async function GET(
     const textBody = await providerRes.text();
     if (!providerRes.ok || !textBody) {
       return NextResponse.json(
-        { error: 'Upstream provider failed to fulfill the purchase order.' },
+        { error: 'Upstream provider failed to fulfill the purchase order.', details: textBody },
         { status: 502 }
       );
     }
@@ -171,43 +168,92 @@ export async function GET(
       );
     }
 
-    // Deduct user balance and save order log in Supabase using supabaseAdmin
-    const newBalance = Number(profileData.balance) - finalPrice;
-    await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', userId);
+    const currentBalance = Number(walletData.balance);
+    const newBalance = currentBalance - finalPrice;
 
-    const orderRecord = {
+    // 1. Deduct user balance in wallets table
+    const { error: updateError } = await supabaseAdmin
+      .from('wallets')
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('[API BUY] Error updating user wallet balance:', updateError);
+    }
+
+    const externalOrderId = String(upstreamOrder.id || upstreamOrder.ID || '');
+    const phoneVal = upstreamOrder.phone || upstreamOrder.number || '';
+    const expiresVal = upstreamOrder.expires || new Date(Date.now() + 20 * 60 * 1000).toISOString();
+
+    // 2. Insert record into rentals table matching your existing schema
+    const rentalRecord = {
       user_id: userId,
-      order_id: upstreamOrder.id || upstreamOrder.ID,
-      phone: upstreamOrder.phone || upstreamOrder.number,
-      operator: operator,
-      product: product,
+      service: product,
       country: country,
-      price: finalPrice,
-      status: 'PENDING',
-      expires: upstreamOrder.expires || new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+      phone_number: phoneVal,
+      status: 'pending',
+      amount: finalPrice.toFixed(2),
+      external_order_id: externalOrderId,
+      operator: operator,
+      expires_at: expiresVal,
       sms: [],
     };
 
-    const { data: insertedOrder, error: insertError } = await supabaseAdmin
-      .from('orders')
-      .insert([orderRecord])
+    const { data: insertedRental, error: rentalError } = await supabaseAdmin
+      .from('rentals')
+      .insert([rentalRecord])
       .select()
       .single();
 
-    if (insertError) {
-      console.error('[API BUY] Error saving order to database:', insertError);
+    if (rentalError) {
+      console.error('[API BUY] Error saving record to rentals table:', rentalError);
+    }
+
+    // 3. Log debit entry into transactions table
+    const transactionRecord = {
+      user_id: userId,
+      description: `Virtual number rental for ${product.toUpperCase()} (${country.toUpperCase()})`,
+      reference: `rental_${insertedRental?.id || externalOrderId}`,
+      type: 'debit',
+      amount: finalPrice.toFixed(2),
+      balance_after: newBalance.toFixed(2),
+      status: 'completed',
+    };
+
+    const { error: txError } = await supabaseAdmin
+      .from('transactions')
+      .insert([transactionRecord]);
+
+    if (txError) {
+      console.error('[API BUY] Error logging transaction:', txError);
+    }
+
+    // 4. Send an in-app notification to the user
+    const notificationRecord = {
+      user_id: userId,
+      title: 'Number Purchased',
+      message: `Successfully purchased a virtual number for ${product.toUpperCase()} for ₦${finalPrice}.`,
+      read: false,
+    };
+
+    const { error: notifError } = await supabaseAdmin
+      .from('notifications')
+      .insert([notificationRecord]);
+
+    if (notifError) {
+      console.error('[API BUY] Error sending notification:', notifError);
     }
 
     const responsePayload = {
-      id: insertedOrder?.order_id || upstreamOrder.id,
-      phone: upstreamOrder.phone || upstreamOrder.number,
+      id: upstreamOrder.id || upstreamOrder.ID,
+      phone: phoneVal,
       operator: operator,
       product: product,
       price: finalPrice,
       status: 'PENDING',
-      expires: upstreamOrder.expires || orderRecord.expires,
+      expires: expiresVal,
       sms: [],
-      created_at: insertedOrder?.created_at || new Date().toISOString(),
+      created_at: insertedRental?.created_at || new Date().toISOString(),
       country: country,
     };
 
