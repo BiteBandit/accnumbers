@@ -963,9 +963,9 @@ export default function ApiDocsPage() {
           <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
             
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">GET</span>
-                <span className="text-xs font-mono font-bold text-[#0b1e5b]">/api/v1/user/buy/activation/{'{country}'}/{'{operator}'}/{'{product}'}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider shrink-0">GET</span>
+                <span className="text-xs font-mono font-bold text-[#0b1e5b] break-all">/api/v1/user/buy/activation/{'{country}'}/{'{operator}'}/{'{product}'}</span>
               </div>
               <h2 className="text-lg font-black text-[#0b1e5b]">User Buy Activation</h2>
               <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
@@ -1162,6 +1162,8 @@ export default function ApiDocsPage() {
             </div>
 
           </div>
+
+
 
 
           
