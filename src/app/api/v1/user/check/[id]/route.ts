@@ -16,16 +16,51 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const authHeader = request.headers.get("authorization");
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // 1. Authenticate user via custom API token/key from headers
+    const authHeader = request.headers.get("authorization") || request.headers.get("x-api-key") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+
+    if (!token) {
       return NextResponse.json(
         { error: "Missing or invalid API token" },
         { status: 401 }
       );
     }
 
-    // 1. Query Supabase and explicitly type the response as any to prevent strict type inference issues
+    // Validate API key and check status using supabaseAdmin
+    const { data: keyData, error: keyError } = await supabaseAdmin
+      .from("api_keys")
+      .select("*")
+      .eq("key", token)
+      .single();
+
+    if (keyError || !keyData || keyData.status !== "active") {
+      return NextResponse.json(
+        { 
+          error: "Invalid or inactive API key.", 
+          details: keyError?.message || "No matching active key found" 
+        },
+        { status: 401 }
+      );
+    }
+
+    let scopesObj: Record<string, boolean> = {};
+    try {
+      scopesObj = typeof keyData.scopes === "string" ? JSON.parse(keyData.scopes) : keyData.scopes;
+    } catch {
+      scopesObj = {};
+    }
+
+    // Ensure user has permissions (adjust scope name if needed, e.g., 'check' or 'rentals')
+    if (!scopesObj || (!scopesObj.purchase && !scopesObj.check && !scopesObj.rentals)) {
+      return NextResponse.json(
+        { error: "This API key lacks permission to check orders." },
+        { status: 403 }
+      );
+    }
+
+    // 2. Query Supabase 'rentals' table for the specific order ID
     const { data: rows, error: dbError } = await supabaseAdmin
       .from("rentals")
       .select("*")
@@ -63,11 +98,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(formattedResponse, { status: 200 });
     }
 
-    // 2. Fallback: Query upstream 5-SIM API using your server environment key
+    // 3. Fallback: If missing locally, validate environment API key before calling 5-SIM
+    const sim5ApiKey = process.env.SIM5_API_KEY;
+    if (!sim5ApiKey) {
+      return NextResponse.json(
+        { error: "Upstream server API key is missing in server environment variables." },
+        { status: 500 }
+      );
+    }
+
     const upstreamResponse = await fetch(`https://5sim.net/v1/user/check/${id}`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${process.env.SIM5_API_KEY}`,
+        Authorization: `Bearer ${sim5ApiKey}`,
         Accept: "application/json",
       },
     });
