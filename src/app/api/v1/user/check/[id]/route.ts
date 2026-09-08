@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-// Import your database client instance here, e.g.:
-// import { db } from "@/lib/db";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+);
 
 interface RouteParams {
   params: Promise<{
@@ -20,22 +25,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 1. Query your database using either the internal UUID/idx or the external_order_id
-    // Example using Prisma/Drizzle/SQL client searching by external_order_id or id:
-    /*
-    const row = await db.query(
-      "SELECT * FROM orders WHERE external_order_id = $1 OR id = $1 LIMIT 1",
-      [id]
-    );
-    const order = row[0];
-    */
-    const order = null; // Replace with your actual database query result
+    // 1. Query Supabase 'rentals' table using admin client (bypasses RLS)
+    const { data: rows, error: dbError } = await supabaseAdmin
+      .from("rentals")
+      .select("*")
+      .or(`external_order_id.eq.${id},id.eq.${id}`)
+      .limit(1);
+
+    if (dbError) {
+      console.error("Database query error:", dbError.message);
+    }
+
+    const order: any = rows?.[0] || null;
 
     if (order) {
-      // 2. Map database record to match the requested 5sim-compatible API output format
       let parsedSms = [];
       try {
-        parsedSms = order.sms ? JSON.parse(order.sms) : [];
+        parsedSms = typeof order.sms === "string" ? JSON.parse(order.sms) : (order.sms || []);
       } catch {
         parsedSms = [];
       }
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         phone: order.phone_number,
         product: order.service,
         price: Number(order.amount),
-        status: order.status.toUpperCase(),
+        status: order.status ? order.status.toUpperCase() : "PENDING",
         expires: order.expires_at,
         sms: parsedSms,
         forwarding: false,
@@ -57,12 +63,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(formattedResponse, { status: 200 });
     }
 
-    // 3. Fallback: If not found in your database, fetch directly from the external API
-    const token = authHeader.split(" ")[1];
+    // 2. Fallback: Query upstream 5-SIM API using your server environment key
     const upstreamResponse = await fetch(`https://5sim.net/v1/user/check/${id}`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${process.env.SIM5_API_KEY}`,
         Accept: "application/json",
       },
     });
