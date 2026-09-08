@@ -28,7 +28,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Validate API key using maybeSingle to safely catch non-existent keys
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from("api_keys")
       .select("*")
@@ -59,12 +58,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 2. Query Supabase 'rentals' table for the specific order ID (checking string and numeric comparisons)
-    const { data: rows, error: dbError } = await supabaseAdmin
-      .from("rentals")
-      .select("*")
-      .or(`external_order_id.eq.${id},id.eq.${id},idx.eq.${id}`)
-      .limit(1);
+    // 2. Query Supabase 'rentals' table first
+    let rows: any[] | null = null;
+    let dbError = null;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    if (isUuid) {
+      const res = await supabaseAdmin
+        .from("rentals")
+        .select("*")
+        .or(`id.eq.${id},external_order_id.eq.${id}`)
+        .limit(1);
+      rows = res.data;
+      dbError = res.error;
+    } else {
+      const res = await supabaseAdmin
+        .from("rentals")
+        .select("*")
+        .or(`external_order_id.eq.${id},idx.eq.${id}`)
+        .limit(1);
+      rows = res.data;
+      dbError = res.error;
+    }
 
     if (dbError) {
       console.error("Database query error:", dbError.message);
@@ -97,12 +113,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(formattedResponse, { status: 200 });
     }
 
-    // 3. Fallback: If missing locally, check upstream 5-SIM API
+    // 3. Fallback: If not found in local database, query upstream 5-SIM API using server env key
     const sim5ApiKey = process.env.SIM5_API_KEY;
     if (!sim5ApiKey) {
       return NextResponse.json(
-        { error: "Upstream server API key is missing in server environment variables." },
-        { status: 500 }
+        { error: "Order not found in database and upstream server API key is missing." },
+        { status: 404 }
       );
     }
 
