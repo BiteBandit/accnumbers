@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 1. Query Supabase 'rentals' table using admin client (bypasses RLS)
+    // 1. Query Supabase 'rentals' table and cast result to prevent 'never' type inference
     const { data: rows, error: dbError } = await supabaseAdmin
       .from("rentals")
       .select("*")
@@ -36,7 +36,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       console.error("Database query error:", dbError.message);
     }
 
-    const order: any = rows?.[0] || null;
+    const typedRows = rows as Array<Record<string, any>> | null;
+    const order = typedRows?.[0] || null;
 
     if (order) {
       let parsedSms = [];
