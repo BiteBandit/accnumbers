@@ -28,12 +28,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Validate API key and check status using supabaseAdmin
+    // Validate API key using maybeSingle to safely catch non-existent keys
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from("api_keys")
       .select("*")
       .eq("key", token)
-      .single();
+      .maybeSingle();
 
     if (keyError || !keyData || keyData.status !== "active") {
       return NextResponse.json(
@@ -52,7 +52,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       scopesObj = {};
     }
 
-    // Ensure user has permissions (adjust scope name if needed, e.g., 'check' or 'rentals')
     if (!scopesObj || (!scopesObj.purchase && !scopesObj.check && !scopesObj.rentals)) {
       return NextResponse.json(
         { error: "This API key lacks permission to check orders." },
@@ -60,11 +59,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 2. Query Supabase 'rentals' table for the specific order ID
+    // 2. Query Supabase 'rentals' table for the specific order ID (checking string and numeric comparisons)
     const { data: rows, error: dbError } = await supabaseAdmin
       .from("rentals")
       .select("*")
-      .or(`external_order_id.eq.${id},id.eq.${id}`)
+      .or(`external_order_id.eq.${id},id.eq.${id},idx.eq.${id}`)
       .limit(1);
 
     if (dbError) {
@@ -82,7 +81,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       const formattedResponse = {
-        id: Number(order.external_order_id) || order.idx,
+        id: Number(order.external_order_id) || order.idx || order.id,
         created_at: order.created_at,
         phone: order.phone_number,
         product: order.service,
@@ -98,7 +97,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(formattedResponse, { status: 200 });
     }
 
-    // 3. Fallback: If missing locally, validate environment API key before calling 5-SIM
+    // 3. Fallback: If missing locally, check upstream 5-SIM API
     const sim5ApiKey = process.env.SIM5_API_KEY;
     if (!sim5ApiKey) {
       return NextResponse.json(
