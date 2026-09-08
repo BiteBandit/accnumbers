@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 1. Query Supabase 'rentals' table and cast result to prevent 'never' type inference
+    // 1. Query Supabase and explicitly type the response as any to prevent strict type inference issues
     const { data: rows, error: dbError } = await supabaseAdmin
       .from("rentals")
       .select("*")
@@ -36,8 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       console.error("Database query error:", dbError.message);
     }
 
-    const typedRows = rows as Array<Record<string, any>> | null;
-    const order = typedRows?.[0] || null;
+    const order: any = rows && rows.length > 0 ? rows[0] : null;
 
     if (order) {
       let parsedSms = [];
