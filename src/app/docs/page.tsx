@@ -1163,31 +1163,30 @@ export default function ApiDocsPage() {
 
           </div>
 
-          {/* Endpoint: User Set Activation Status */}
+            {/* Endpoint: User Check Order Status */}
           <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
             
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider shrink-0">GET</span>
-                <span className="text-xs font-mono font-bold text-[#0b1e5b] break-all">/api/v1/user/status/{'{id}'}/{'{status}'}</span>
+                <span className="text-xs font-mono font-bold text-[#0b1e5b] break-all">/api/v1/user/check/{'{id}'}</span>
               </div>
-              <h2 className="text-lg font-black text-[#0b1e5b]">User Set Activation Status</h2>
+              <h2 className="text-lg font-black text-[#0b1e5b]">User Check Order Status</h2>
               <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
-                This endpoint allows authenticated users to update the lifecycle status of an active virtual number rental order (such as canceling the order, marking it as finished, or requesting an additional SMS)[span_0](start_span)[span_0](end_span).
+                This endpoint allows authenticated users to check and retrieve the current lifecycle status of an active virtual number rental order using a path parameter.
               </p>
             </div>
 
             {/* Authentication requirements note */}
             <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
-              <span className="font-bold text-[#0b1e5b]">Authentication Requirement:</span> Requires a valid API key with an active status, a valid expiration date, and the <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">purchase</code> scope enabled[span_1](start_span)[span_1](end_span). Pass your key via the <code className="font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header or the <code className="font-mono">x-api-key</code> custom header[span_2](start_span)[span_2](end_span).
+              <span className="font-bold text-[#0b1e5b]">Authentication Requirement:</span> Requires a valid API key with an active status, a valid expiration date, and the <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">purchase</code> scope enabled. Pass your key via the <code className="font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header or the <code className="font-mono">x-api-key</code> custom header.
             </div>
 
             {/* Path Parameters note */}
             <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
               <span className="font-bold text-[#0b1e5b]">Path Parameters (Required):</span>
               <ul className="list-disc pl-5 pt-1 space-y-1 text-gray-600">
-                <li><code className="font-mono">id</code>: The unique numeric order ID of the active rental (e.g., <code className="font-mono">1084665247</code>)[span_3](start_span)[span_3](end_span).</li>
-                <li><code className="font-mono">status</code>: The target status action code (e.g., <code className="font-mono">1</code> for ready/retry, <code className="font-mono">6</code> for finish, or <code className="font-mono">8</code> for cancel)[span_4](start_span)[span_4](end_span).</li>
+                <li><code className="font-mono">id</code>: The unique numeric order ID of the active rental (e.g., <code className="font-mono">106968055</code>).</li>
               </ul>
             </div>
 
@@ -1199,7 +1198,7 @@ export default function ApiDocsPage() {
               </div>
 
               <div className="space-y-2 text-xs overflow-x-auto">
-                <div className="text-cyan-400">curl -X GET &quot;https://www.accnumbers.com/api/v1/user/status/1084665247/8&quot; \</div>
+                <div className="text-cyan-400">curl -X GET &quot;http://localhost:3000/api/v1/user/check/106968055&quot; \</div>
                 <div className="text-slate-300 pl-4">-H &quot;Authorization: Bearer acc_test_6ede12ca9a8ab629ab207f5346140cea&quot; \</div>
                 <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
               </div>
@@ -1208,8 +1207,8 @@ export default function ApiDocsPage() {
                 <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
                 <div className="text-amber-300 text-xs overflow-x-auto">
                   <pre>{`{
-  "status": "ACCESS_CANCEL",
-  "message": "Order successfully canceled and refunded."
+  "status": "ACCESS_READY",
+  "message": "Order status retrieved successfully."
 }`}</pre>
                 </div>
               </div>
@@ -1219,19 +1218,6 @@ export default function ApiDocsPage() {
             <div className="space-y-4">
               <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Detailed Error Messages</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">400 Bad Request</span>
-                    <span className="text-[10px] text-gray-400 font-mono">Invalid Status</span>
-                  </div>
-                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
-                    &quot;Invalid order status action parameter provided.&quot;
-                  </p>
-                  <p className="text-xs text-[#6b7280]">
-                    Triggered when an unsupported status code is passed in the request path[span_5](start_span)[span_5](end_span).
-                  </p>
-                </div>
 
                 <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
                   <div className="flex items-center justify-between">
@@ -1242,7 +1228,7 @@ export default function ApiDocsPage() {
                     &quot;Order record not found or does not belong to user.&quot;
                   </p>
                   <p className="text-xs text-[#6b7280]">
-                    Triggered when the specified order ID does not match any active records in database storage[span_6](start_span)[span_6](end_span).
+                    Triggered when the specified order ID does not match any active records in database storage.
                   </p>
                 </div>
 
@@ -1255,7 +1241,7 @@ export default function ApiDocsPage() {
                     &quot;Missing or invalid API token&quot;
                   </p>
                   <p className="text-xs text-[#6b7280]">
-                    Triggered when no valid authorization header or token is provided[span_7](start_span)[span_7](end_span).
+                    Triggered when no valid authorization header or token is provided.
                   </p>
                 </div>
 
@@ -1268,7 +1254,7 @@ export default function ApiDocsPage() {
                     &quot;This API key lacks permission to manage orders (purchase scope is disabled).&quot;
                   </p>
                   <p className="text-xs text-[#6b7280]">
-                    Triggered when the key has the <code className="font-mono">purchase</code> scope explicitly disabled[span_8](start_span)[span_8](end_span).
+                    Triggered when the key has the <code className="font-mono">purchase</code> scope explicitly disabled.
                   </p>
                 </div>
 
@@ -1291,12 +1277,12 @@ export default function ApiDocsPage() {
                     <tr>
                       <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
                       <td className="p-3.5 font-mono">String</td>
-                      <td className="p-3.5">The resulting order state string response (<code className="font-mono">ACCESS_CANCEL</code>, <code className="font-mono">ACCESS_READY</code>, etc.)[span_9](start_span)[span_9](end_span).</td>
+                      <td className="p-3.5">The current state response of the order (<code className="font-mono">ACCESS_READY</code>, etc.).</td>
                     </tr>
                     <tr>
                       <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">message</td>
                       <td className="p-3.5 font-mono">String</td>
-                      <td className="p-3.5">Human-readable description detailing the result of the status modification request[span_10](start_span)[span_10](end_span).</td>
+                      <td className="p-3.5">Human-readable description detailing the result of the request.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1304,6 +1290,7 @@ export default function ApiDocsPage() {
             </div>
 
           </div>
+          
 
 
 
