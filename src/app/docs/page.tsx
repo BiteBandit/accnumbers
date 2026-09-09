@@ -1163,7 +1163,7 @@ export default function ApiDocsPage() {
 
           </div>
 
-            {/* Endpoint: User Check Order Status */}
+                      {/* Endpoint: User Check Order Status */}
           <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
             
             <div className="space-y-3">
@@ -1173,7 +1173,7 @@ export default function ApiDocsPage() {
               </div>
               <h2 className="text-lg font-black text-[#0b1e5b]">User Check Order Status</h2>
               <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
-                This endpoint allows authenticated users to check and retrieve the current lifecycle status of an active virtual number rental order using a path parameter.
+                This endpoint allows authenticated users to check and retrieve the complete order details and current lifecycle status of an active virtual number rental order using a path parameter.
               </p>
             </div>
 
@@ -1198,7 +1198,7 @@ export default function ApiDocsPage() {
               </div>
 
               <div className="space-y-2 text-xs overflow-x-auto">
-                <div className="text-cyan-400">curl -X GET &quot;http://localhost:3000/api/v1/user/check/106968055&quot; \</div>
+                <div className="text-cyan-400">curl -L -X GET &quot;https://www.accnumbers.com/api/v1/user/check/106968055&quot; \</div>
                 <div className="text-slate-300 pl-4">-H &quot;Authorization: Bearer acc_test_6ede12ca9a8ab629ab207f5346140cea&quot; \</div>
                 <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
               </div>
@@ -1207,8 +1207,25 @@ export default function ApiDocsPage() {
                 <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
                 <div className="text-amber-300 text-xs overflow-x-auto">
                   <pre>{`{
-  "status": "ACCESS_READY",
-  "message": "Order status retrieved successfully."
+  "id": 106968055,
+  "created_at": "2026-08-13T10:10:35.43421+00:00",
+  "phone": "+15306109780",
+  "product": "whatsapp",
+  "price": 3467,
+  "status": "FINISHED",
+  "expires": "2026-08-13T10:30:35.14971+00:00",
+  "sms": [
+    {
+      "code": "650358",
+      "date": "2026-08-13T10:10:52.588935Z",
+      "text": "<#>YourWhatsAppcode:650358Don'tsharethiscodewithothers4sgLq1p5sV6",
+      "sender": "12403486504",
+      "created_at": "2026-08-13T10:10:52.623214Z"
+    }
+  ],
+  "forwarding": false,
+  "forwarding_number": "",
+  "country": "usa"
 }`}</pre>
                 </div>
               </div>
@@ -1275,14 +1292,59 @@ export default function ApiDocsPage() {
                   </thead>
                   <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
                     <tr>
-                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
-                      <td className="p-3.5 font-mono">String</td>
-                      <td className="p-3.5">The current state response of the order (<code className="font-mono">ACCESS_READY</code>, etc.).</td>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">id</td>
+                      <td className="p-3.5 font-mono">Integer</td>
+                      <td className="p-3.5">The unique numeric order ID.</td>
                     </tr>
                     <tr>
-                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">message</td>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">created_at</td>
                       <td className="p-3.5 font-mono">String</td>
-                      <td className="p-3.5">Human-readable description detailing the result of the request.</td>
+                      <td className="p-3.5">Timestamp when the order was created.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">phone</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The assigned virtual phone number.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">product</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The target application or service name (e.g., whatsapp).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">price</td>
+                      <td className="p-3.5 font-mono">Integer</td>
+                      <td className="p-3.5">The cost associated with the rental order.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The current state response of the order (<code className="font-mono">FINISHED</code>, etc.).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">expires</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">Timestamp when the order rental expires.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">sms</td>
+                      <td className="p-3.5 font-mono">Array</td>
+                      <td className="p-3.5">List of received SMS messages, containing codes, dates, sender info, and text payload.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">forwarding</td>
+                      <td className="p-3.5 font-mono">Boolean</td>
+                      <td className="p-3.5">Indicates if call or SMS forwarding is active.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">forwarding_number</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The phone number used for forwarding, if enabled.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">country</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The country code or name for the number origin.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1290,7 +1352,8 @@ export default function ApiDocsPage() {
             </div>
 
           </div>
-          
+
+
 
 
 
