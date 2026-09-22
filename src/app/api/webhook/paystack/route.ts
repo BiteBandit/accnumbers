@@ -34,6 +34,7 @@ export async function POST(req: Request) {
       const metadata = txDetails.metadata || {};
       const promoCodeId = metadata.promo_code_id;
       const bonusAmount = Number(metadata.bonus_amount) || 0;
+      const userId = metadata.user_id; // Extract user_id directly from metadata
 
       // Use strictly original_amount from metadata without a hardcoded fallback value
       const amountPaid = Number(metadata.original_amount) || 0;
@@ -42,9 +43,21 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: 'Invalid deposit amount in metadata' }, { status: 400 });
       }
 
-      // Find user ID from email
-      const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
-      const currentUser = userData?.users.find((u) => u.email === userEmail);
+      let currentUser = null;
+
+      // 1. Prioritize direct lookup using metadata user_id (fast & handles large user bases)
+      if (userId) {
+        const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (!error && data?.user) {
+          currentUser = data.user;
+        }
+      }
+
+      // 2. Fallback: If metadata user_id wasn't present, search by email
+      if (!currentUser && userEmail) {
+        const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
+        currentUser = userData?.users.find((u) => u.email === userEmail);
+      }
 
       if (!currentUser) {
         return NextResponse.json({ success: false, error: 'User account not found' }, { status: 404 });
