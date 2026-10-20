@@ -70,21 +70,16 @@ export default function RentalDetailPage() {
   const [rentalSession, setRentalSession] = useState<any>(null);
   const [logoHasError, setLogoHasError] = useState(false);
   
-      const [copiedItemText, setCopiedItemText] = useState<string | null>(null);
+  const [copiedItemText, setCopiedItemText] = useState<string | null>(null);
   const [isUpdatingAction, setIsUpdatingAction] = useState(false);
   const [isCheckingCode, setIsCheckingCode] = useState(false);
   const [codeCooldown, setCodeCooldown] = useState(0);
-  const isPollingActiveRef = useRef(true);
-  const pollFunctionRef = useRef<(() => void) | null>(null);
-  const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Add this here
-    const isFetchingRef = useRef(false); // <-- Moved here safely
-
 
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number>(1200);
   const [cancelGraceTimeLeft, setCancelGraceTimeLeft] = useState<number>(60);
 
-   // 🔔 ADD THIS AUDIO HELPER FUNCTION HERE:
+  // Audio Helper Function
   const playNotificationSound = () => {
     try {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -143,282 +138,236 @@ export default function RentalDetailPage() {
     return () => clearInterval(bannerInterval);
   }, [bannerTips.length]);
 
-    useEffect(() => {
-  let rentalSubscription: any = null;
-  let walletSubscription: any = null;
-  let notifSubscription: any = null;
-  let isCancelled = false;
+  useEffect(() => {
+    let rentalSubscription: any = null;
+    let walletSubscription: any = null;
+    let notifSubscription: any = null;
+    let isCancelled = false;
 
-  // Ensure polling is explicitly enabled fresh on every mount/effect run
-  isPollingActiveRef.current = true;
-
-  async function loadRentalDetails() {
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        router.push('/signin');
-        return;
-      }
-
-      if (isCancelled) return;
-
-      const userAccount = session.user;
-      setCurrentUserData(userAccount);
-
-      const { data: walletData } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userAccount.id)
-        .maybeSingle();
-
-      if (isCancelled) return;
-
-      if (walletData) {
-        setWalletBalance(Number(walletData.balance ?? 0));
-      }
-
-      const { count: unread, error: unreadError } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userAccount.id)
-        .eq('read', false);
-
-      if (!unreadError && !isCancelled) {
-        setUnreadCount(unread || 0);
-      }
-
-      let query = supabase.from('rentals').select('*').eq('user_id', userAccount.id);
-      
-      if (rentalId) {
-        if (!isNaN(Number(rentalId))) {
-          query = query.eq('idx', Number(rentalId));
-        } else {
-          query = query.eq('id', rentalId);
-        }
-      }
-
-      const { data: rentalData, error: rentalError } = await query.maybeSingle();
-
-      if (isCancelled) return;
-
-      if (rentalError || !rentalData) {
-        router.push('/dashboard/rentals');
-        return;
-      }
-
-      let initialData = rentalData;
-      const orderId = rentalData.external_order_id || rentalData.id;
-
+    async function loadRentalDetails() {
       try {
-        const checkRes = await fetch(`/api/5sim/check?id=${orderId}`);
-        const checkJson = await checkRes.json();
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        if (checkJson.success && !isCancelled) {
-          initialData = {
-            ...rentalData,
-            status: checkJson.status || checkJson.rawStatus,
-            sms: checkJson.sms,
-            expires: checkJson.expires || rentalData.expires,
-          };
+        if (sessionError || !session) {
+          router.push('/signin');
+          return;
         }
-      } catch (err) {
-        console.error("[DEBUG_5SIM_CHECK_INITIAL] Initial sync failed:", err);
-      }
 
-      if (isCancelled) return;
+        if (isCancelled) return;
 
-      setRentalSession(initialData);
+        const userAccount = session.user;
+        setCurrentUserData(userAccount);
 
-      if (!['FINISHED', 'COMPLETED', 'CANCELED', 'CANCELLED', 'EXPIRED', 'BANNED', 'TIMEOUT'].includes(initialData.status?.toUpperCase())) {
-        playNotificationSound();
-      }
+        // Load wallet balance
+        const { data: walletData, error: walletError } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', userAccount.id)
+          .maybeSingle();
 
-      const createdTimestamp = new Date(initialData.created_at).getTime();
-      const now = Date.now();
-      const elapsedSeconds = Math.floor((now - createdTimestamp) / 1000);
-      const remainingGraceTime = Math.max(0, 60 - elapsedSeconds);
+        if (isCancelled) return;
 
-      setCancelGraceTimeLeft(remainingGraceTime);
+        if (!walletError && walletData) {
+          setWalletBalance(Number(walletData.balance ?? 0));
+        }
 
-      const poll = async (isManual = false) => {
-        if ((!isPollingActiveRef.current && !isManual) || isFetchingRef.current || isCancelled) return;
+        // Load unread notifications count
+        const { count: unread, error: unreadError } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userAccount.id)
+          .eq('read', false);
 
-        isFetchingRef.current = true;
+        if (!unreadError && !isCancelled) {
+          setUnreadCount(unread ?? 0);
+        }
 
-        try {
-          const res = await fetch(`/api/5sim/check?id=${orderId}`);
-          
-          if (!res.ok) {
-            throw new Error(`Network response failed with status ${res.status}`);
+        // Load rental directly from Supabase.
+        let query = supabase
+          .from('rentals')
+          .select('*')
+          .eq('user_id', userAccount.id);
+
+        if (rentalId) {
+          if (!isNaN(Number(rentalId))) {
+            query = query.eq('idx', Number(rentalId));
+          } else {
+            query = query.eq('id', rentalId);
+          }
+        }
+
+        const {
+          data: rentalData,
+          error: rentalError,
+        } = await query.maybeSingle();
+
+        if (isCancelled) return;
+
+        if (rentalError || !rentalData) {
+          if (rentalError) {
+            console.error('[RENTAL_LOAD] Failed to load rental:', rentalError);
           }
 
-          const json = await res.json();
+          router.push('/dashboard/rentals');
+          return;
+        }
 
-          if ((!json.success && !isManual) || isCancelled) return;
+        setRentalSession(rentalData);
 
-          const status = (json.status || json.rawStatus)?.toUpperCase();
+        // Play sound only for a rental that is not already terminal.
+        const terminalStatuses = [
+          'FINISHED',
+          'COMPLETED',
+          'CANCELED',
+          'CANCELLED',
+          'EXPIRED',
+          'BANNED',
+          'TIMEOUT',
+        ];
 
-          setRentalSession((prev: any) => {
-            if (isCancelled) return prev;
-            const prevSmsCount = Array.isArray(prev?.sms) ? prev.sms.length : 0;
-            const newSms = json.sms || prev?.sms;
-            const newSmsCount = Array.isArray(newSms) ? newSms.length : 0;
-            
-            if (newSmsCount > prevSmsCount) {
-              isPollingActiveRef.current = false;
-              if (pollTimeoutRef.current) {
-                clearTimeout(pollTimeoutRef.current);
-                pollTimeoutRef.current = null;
+        const currentStatus = String(
+          rentalData.status ?? ''
+        ).toUpperCase();
+
+        if (!terminalStatuses.includes(currentStatus)) {
+          playNotificationSound();
+        }
+
+        // Calculate the remaining 60-second cancellation grace period.
+        const createdTimestamp = new Date(
+          rentalData.created_at
+        ).getTime();
+
+        const elapsedSeconds = Math.floor(
+          (Date.now() - createdTimestamp) / 1000
+        );
+
+        setCancelGraceTimeLeft(
+          Math.max(0, 60 - elapsedSeconds)
+        );
+
+        if (isCancelled) return;
+
+        // Listen for VPS worker updates to this rental.
+        rentalSubscription = supabase
+          .channel(`rental-live-${rentalData.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'rentals',
+              filter: `id=eq.${rentalData.id}`,
+            },
+            (payload) => {
+              if (isCancelled || !payload.new) return;
+
+              setRentalSession((prev: any) => ({
+                ...prev,
+                ...payload.new,
+              }));
+            }
+          )
+          .subscribe();
+
+        // Listen for wallet balance updates.
+        walletSubscription = supabase
+          .channel(`wallet-live-${userAccount.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'wallets',
+              filter: `user_id=eq.${userAccount.id}`,
+            },
+            (payload) => {
+              if (
+                isCancelled ||
+                payload.new?.balance === undefined
+              ) {
+                return;
               }
-              setCodeCooldown(0);
-              playNotificationSound();
+
+              setWalletBalance(
+                Number(payload.new.balance)
+              );
             }
+          )
+          .subscribe();
 
-            return {
-              ...prev,
-              status: status || prev?.status,
-              sms: newSms,
-              expires: json.expires || prev?.expires,
-            };
-          });
+        // Keep the unread notification count synchronized.
+        notifSubscription = supabase
+          .channel(`notifications-channel-${userAccount.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${userAccount.id}`,
+            },
+            async () => {
+              if (isCancelled) return;
 
-          if (
-            [
-              "EXPIRED",
-              "CANCELED",
-              "CANCELLED",
-              "FINISHED",
-              "BANNED",
-              "TIMEOUT",
-            ].includes(status)
-          ) {
-            isPollingActiveRef.current = false;
+              const {
+                count: updatedUnread,
+                error: updatedUnreadError,
+              } = await supabase
+                .from('notifications')
+                .select('*', {
+                  count: 'exact',
+                  head: true,
+                })
+                .eq('user_id', userAccount.id)
+                .eq('read', false);
 
-            if (pollTimeoutRef.current) {
-              clearTimeout(pollTimeoutRef.current);
-              pollTimeoutRef.current = null;
+              if (!isCancelled && !updatedUnreadError) {
+                setUnreadCount(updatedUnread ?? 0);
+              }
             }
+          )
+          .subscribe();
 
-            return;
-          }
-        } catch (e) {
-          console.error("[DEBUG_POLL_CHECK] Fetch error encountered:", e);
-        } finally {
-          isFetchingRef.current = false;
+      } catch (err) {
+        console.error(
+          '[DEBUG_LOAD_RENTAL] Error fetching rental page data:',
+          err
+        );
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
         }
-
-        if (isPollingActiveRef.current && !isCancelled) {
-          pollTimeoutRef.current = setTimeout(() => poll(false), 5000);
-        }
-      };
-
-      pollFunctionRef.current = () => poll(true);
-      poll(false);
-
-      if (isCancelled) return;
-
-      rentalSubscription = supabase
-        .channel(`rental-live-${rentalData.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'rentals',
-            filter: `id=eq.${rentalData.id}`,
-          },
-          (payload) => {
-            if (payload.new && !isCancelled) {
-              setRentalSession((prev: any) => ({ ...prev, ...payload.new }));
-            }
-          }
-        )
-        .subscribe();
-
-      walletSubscription = supabase
-        .channel(`wallet-live-${userAccount.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'wallets',
-            filter: `user_id=eq.${userAccount.id}`,
-          },
-          (payload) => {
-            if (payload.new && payload.new.balance !== undefined && !isCancelled) {
-              setWalletBalance(Number(payload.new.balance));
-            }
-          }
-        )
-        .subscribe();
-
-      notifSubscription = supabase
-        .channel(`notifications-channel-${userAccount.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${userAccount.id}`,
-          },
-          async () => {
-            if (isCancelled) return;
-            const { count: updatedUnread } = await supabase
-              .from('notifications')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', userAccount.id)
-              .eq('read', false);
-
-            if (!isCancelled) {
-              setUnreadCount(updatedUnread || 0);
-            }
-          }
-        )
-        .subscribe();
-
-    } catch (err) {
-      console.error('[DEBUG_LOAD_RENTAL] Error fetching rental page data:', err);
-    } finally {
-      if (!isCancelled) {
-        setIsLoading(false);
       }
     }
-  }
 
-  if (rentalId) {
-    loadRentalDetails();
-  }
-
-  return () => {
-    isCancelled = true;
-    isPollingActiveRef.current = false; 
-
-    if (rentalSubscription) {
-      supabase.removeChannel(rentalSubscription);
-      rentalSubscription = null;
+    if (rentalId) {
+      loadRentalDetails();
     }
-    if (walletSubscription) {
-      supabase.removeChannel(walletSubscription);
-      walletSubscription = null;
-    }
-    if (notifSubscription) {
-      supabase.removeChannel(notifSubscription);
-      notifSubscription = null;
-    }
-    if (pollTimeoutRef.current) {
-      clearTimeout(pollTimeoutRef.current);
-      pollTimeoutRef.current = null;
-    }
-  };
 
-}, [rentalId, router]);
+    return () => {
+      isCancelled = true;
 
+      if (rentalSubscription) {
+        supabase.removeChannel(rentalSubscription);
+        rentalSubscription = null;
+      }
+      if (walletSubscription) {
+        supabase.removeChannel(walletSubscription);
+        walletSubscription = null;
+      }
+      if (notifSubscription) {
+        supabase.removeChannel(notifSubscription);
+        notifSubscription = null;
+      }
+    };
 
+  }, [rentalId, router]);
 
-    // 1. Initialize timeLeft when the session first loads or expires changes
+  // 1. Initialize timeLeft when the session first loads or expires changes
   useEffect(() => {
     if (!rentalSession) return;
 
@@ -439,7 +388,7 @@ export default function RentalDetailPage() {
   // 2. Clean standalone tick interval that safely decrements every second
   useEffect(() => {
     const upperStatus = rentalSession?.status?.toUpperCase();
-    if (['FINISHED', 'COMPLETED', 'CANCELED', 'CANCELLED', 'EXPIRED', 'BANNED', 'TIMEOUT', 'RECEIVED'].includes(upperStatus)) {
+    if (['FINISHED', 'COMPLETED', 'CANCELED', 'CANCELLED', 'EXPIRED', 'BANNED', 'TIMEOUT'].includes(upperStatus)) {
       return;
     }
 
@@ -458,8 +407,6 @@ export default function RentalDetailPage() {
 
     return () => clearInterval(timerInterval);
   }, [rentalSession?.status]);
-
-
 
   const handleUserSignOut = async () => {
     await supabase.auth.signOut();
@@ -510,50 +457,56 @@ export default function RentalDetailPage() {
     });
   };
 
-              const handleResendSms = async () => {
-    if (isUpdatingAction || isCheckingCode || codeCooldown > 0) return;
+  const handleResendSms = async () => {
+    if (
+      isUpdatingAction ||
+      isCheckingCode ||
+      codeCooldown > 0 ||
+      !rentalSession ||
+      !currentUserData
+    ) {
+      return;
+    }
+
     setIsCheckingCode(true);
-    
-    // Enable active polling via ref
-    isPollingActiveRef.current = true;
-    
-    // Clear any existing timeout before triggering
-    if (pollTimeoutRef.current) {
-      clearTimeout(pollTimeoutRef.current);
-      pollTimeoutRef.current = null;
-    }
-
-    // Trigger the first check immediately
-    if (pollFunctionRef.current) {
-      await pollFunctionRef.current();
-    }
-    
-    setTimeout(() => {
-      setIsCheckingCode(false);
-    }, 600);
-
-    // Start a 45-second cooldown/active checking window
     setCodeCooldown(45);
-    const cooldownInterval = setInterval(() => {
-      setCodeCooldown((prev) => {
-        if (prev <= 1 || !isPollingActiveRef.current) {
-          clearInterval(cooldownInterval);
-          isPollingActiveRef.current = false;
-          if (pollTimeoutRef.current) {
-            clearTimeout(pollTimeoutRef.current);
-            pollTimeoutRef.current = null;
-          }
-          return 0;
-        }
-        return prev - 1;
+
+    try {
+      const { data, error } = await supabase
+        .from('rentals')
+        .select('*')
+        .eq('id', rentalSession.id)
+        .eq('user_id', currentUserData.id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Rental not found.');
+      }
+
+      setRentalSession((prev: any) => ({
+        ...prev,
+        ...data,
+      }));
+    } catch (error) {
+      console.error('[RENTAL_REFRESH] Failed to refresh rental:', error);
+
+      setAlertDialog({
+        isOpen: true,
+        title: 'Refresh failed',
+        description: 'Could not refresh your rental. Please try again.',
       });
-    }, 1000);
+
+      setCodeCooldown(0);
+    } finally {
+      setIsCheckingCode(false);
+    }
   };
 
-
-
-
-    const executeAction = async () => {
+  const executeAction = async () => {
     const selectedAction = confirmDialog.actionType;
     setConfirmDialog({ isOpen: false, title: '', description: '', actionType: null });
     if (!selectedAction) return;
@@ -601,7 +554,6 @@ export default function RentalDetailPage() {
     } catch (err: any) {
       console.error('Action execution failed:', err);
       
-      // Handle orders already closed or processed externally
       const errorMessage = err?.message || 'Could not process request.';
       if (errorMessage.includes('already been processed') || errorMessage.includes('closed')) {
         setRentalSession((prev: any) => ({ ...prev, status: 'EXPIRED' }));
@@ -616,7 +568,6 @@ export default function RentalDetailPage() {
       setIsUpdatingAction(false);
     }
   };
-
 
   if (isLoading) {
     return (
@@ -665,12 +616,12 @@ export default function RentalDetailPage() {
   
   const verificationCode = latestSms?.code || rentalSession.sms_code || extractCodeFromText(rawSmsText);
   
-  const currentStatus = rentalSession.status?.toUpperCase() || 'PENDING';
+    const currentStatus = rentalSession.status?.toUpperCase() || 'PENDING';
   const isFinished = ['FINISHED', 'COMPLETED'].includes(currentStatus);
   const isCancelled = ['CANCELED', 'CANCELLED'].includes(currentStatus);
   const isExpired = ['EXPIRED', 'TIMEOUT'].includes(currentStatus);
   const isBanned = ['BANNED'].includes(currentStatus);
-  const isReceived = currentStatus === 'RECEIVED';
+  const isReceived = Array.isArray(smsList) && smsList.length > 0;
   const hasCodeReceived = Boolean(verificationCode) || isReceived;
   const isTerminal = isFinished || isCancelled || isExpired || isBanned;
 
@@ -679,7 +630,7 @@ export default function RentalDetailPage() {
   return (
     <div className="min-h-screen bg-[#fdfdfc] bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] text-[#111111] flex flex-col justify-between selection:bg-[#0b1e5b]/15 font-sans">
       
-        {/* Top Header */}
+      {/* Top Header */}
       <header className="bg-[#fdfdfc]/95 backdrop-blur-md border-b border-[#e5e7eb] px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-xs">
         <div className="flex items-center gap-4">
           <button 
@@ -738,7 +689,7 @@ export default function RentalDetailPage() {
               </button>
             </div>
 
-                        {/* Scrollable Content */}
+            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
                 <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
@@ -767,100 +718,6 @@ export default function RentalDetailPage() {
                 </summary>
                 <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
                   Occasionally, virtual numbers may be pre-flagged by certain platforms. If this happens, click the **Ban** button immediately to close the session and automatically refund your wallet balance.
-                </p>
-              </details>
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>Can I request a code more than once?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Yes! If the app or service allows resending SMS messages, you can click resend on their platform. Additional messages will automatically show up in your live feed here.
-                </p>
-              </details>
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>How long are numbers active?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Standard rental sessions last up to 20 minutes (or as shown by the active countdown timer). If the timer hits zero without a message, the session expires and funds are refunded.
-                </p>
-              </details>
-
-                            <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>Can I use the same phone number for multiple apps?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  No. Each number you buy is meant for only one specific service (such as WhatsApp or Telegram). Trying to use the same number for multiple apps will usually fail or cause issues.
-                </p>
-              </details>
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>What if the app says the phone number is already registered?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Occasionally, virtual numbers may have been used previously on certain platforms. If the app tells you the number is already taken or blocked, just click the **"Ban"** button on this page. Your order will cancel and your money will be refunded instantly so you can try a different number.
-                </p>
-              </details>
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>How long does it usually take for the SMS code to arrive?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Most verification codes arrive within 1 to 2 minutes after you request them on the target app. If several minutes pass with no message, it is best to cancel the order for a full refund and try a different country or operator.
-                </p>
-              </details>
-
-
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>How do refunds work?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Refunds for cancelled, banned, or timed-out orders are credited back to your AccNumbers wallet balance instantly and automatically.
-                </p>
-              </details>
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>What should I do if the SMS code is split or incomplete?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Make sure to check the entire text string in your received messages log. Some services send alphanumeric text where the verification digits are embedded within a sentence.
-                </p>
-              </details>
-
-                            <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>How do I get another SMS code if I requested a resend?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  If you asked the app (like WhatsApp or Telegram) to send another code, just click the **"Check for New Code"** button on this page. This will check for your new message right away.
-                </p>
-              </details>
-
-
-
-              <details className="group border border-[#e5e7eb] rounded-2xl p-4 bg-white shadow-xs">
-                <summary className="flex justify-between items-center font-bold text-xs cursor-pointer list-none text-[#0b1e5b]">
-                  <span>Are all country operators supported for every app?</span>
-                  <span className="transition group-open:rotate-180">▼</span>
-                </summary>
-                <p className="text-xs text-[#6b7280] mt-2 leading-relaxed">
-                  Certain platforms block specific telecom operators or virtual prefixes. Always check the operator statistics and delivery rates before purchasing a number for strict platforms.
                 </p>
               </details>
             </div>
@@ -920,37 +777,6 @@ export default function RentalDetailPage() {
                 <Link href="/dashboard/rentals" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-[#0b1e5b]/10 text-[#0b1e5b] font-bold text-xs">
                   <ClipboardDocumentListIcon className="w-4 h-4 text-[#0b1e5b]" /> My active rentals
                 </Link>
-                <Link href="/dashboard/referrals" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
-                  <UsersIcon className="w-4 h-4 text-[#6b7280]" /> Referral rewards
-                </Link>
-                <Link href="/dashboard/notifications" onClick={() => setIsSidebarOpen(false)} className="flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
-                  <div className="flex items-center gap-3">
-                    <BellIcon className="w-4 h-4 text-[#6b7280]" /> Notifications
-                  </div>
-                  {unreadCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-red-500 text-white font-bold text-[10px]">{unreadCount}</span>
-                  )}
-                </Link>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider px-2 pb-1">Finance & Funding</p>
-                <Link href="/dashboard/transactions" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
-                  <ArrowsRightLeftIcon className="w-4 h-4 text-[#6b7280]" /> Transactions & Ledger
-                </Link>
-                <Link href="/dashboard/wallet" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
-                  <PlusIcon className="w-4 h-4 text-[#6b7280]" /> Wallet Top Up
-                </Link>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider px-2 pb-1">System & Settings</p>
-                <Link href="/dashboard/api" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
-                  <KeyIcon className="w-4 h-4 text-[#6b7280]" /> API Keys & Access
-                </Link>
-                <Link href="/dashboard/security" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
-                  <ShieldCheckIcon className="w-4 h-4 text-[#6b7280]" /> Security & 2FA
-                </Link>
               </div>
             </div>
 
@@ -975,7 +801,7 @@ export default function RentalDetailPage() {
         </div>
       )}
 
-      {/* Main Content (Edge-to-Edge on large screens) */}
+      {/* Main Content */}
       <main className="flex-1 w-full max-w-full sm:max-w-5xl mx-auto py-10 px-3 sm:px-8 space-y-8">
         
         <div className="space-y-4">
@@ -1021,7 +847,6 @@ export default function RentalDetailPage() {
                 )}
               </div>
 
-              {/* FAQ Question Mark Icon Button inside Card Header */}
               <button
                 onClick={() => setIsFaqOpen(true)}
                 className="w-9 h-9 rounded-2xl bg-white/10 hover:bg-white/25 text-white transition flex items-center justify-center cursor-pointer shadow-xs"
@@ -1071,7 +896,7 @@ export default function RentalDetailPage() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 py-2">
-                      {isTerminal ? (
+                    {isTerminal ? (
                       <span className="text-xs font-semibold text-[#6b7280]">No SMS received</span>
                     ) : (
                       <>
@@ -1111,7 +936,7 @@ export default function RentalDetailPage() {
             </div>
           )}
 
-          {Array.isArray(smsList) && smsList.length > 0 && (
+             {Array.isArray(smsList) && smsList.length > 0 && (
             <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
               <span className="text-[10px] font-bold text-gray-500 uppercase">Received Messages Log</span>
               <div className="space-y-1 font-mono text-xs text-gray-800">
@@ -1125,7 +950,7 @@ export default function RentalDetailPage() {
             </div>
           )}
 
-            {/* Action Area / Dynamic Quick Buy Card for Completed/Finished States */}
+          {/* Action Area */}
           {isTerminal ? (
             <div className="pt-4 border-t border-[#e5e7eb] space-y-3">
               <button
@@ -1147,30 +972,25 @@ export default function RentalDetailPage() {
           ) : (
             <div className="pt-4 border-t border-[#e5e7eb] space-y-4">
 
-              {/* RESEND / CHECK NEW CODE BUTTON (Shows only when status is RECEIVED) */}
-{isReceived && (
-  <div className="p-4 rounded-2xl bg-[#0b1e5b]/5 border border-[#0b1e5b]/10 flex flex-col items-center gap-3">
-    <p className="text-xs text-[#6b7280] text-center">
-      Requested another SMS code from the app (e.g., WhatsApp, TikTok)? Click below to check for the new code.
-    </p>
-    <button
-      onClick={handleResendSms}
-      disabled={isUpdatingAction || isCheckingCode || codeCooldown > 0}
-      className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#0b1e5b] hover:bg-[#0b1e5b]/90 text-white transition font-bold text-xs sm:text-sm cursor-pointer shadow-sm flex items-center justify-center gap-2 disabled:opacity-75"
-    >
-      <ArrowsRightLeftIcon className={`w-5 h-5 ${isCheckingCode ? 'animate-spin' : ''}`} /> 
-      {isCheckingCode 
-        ? 'Checking for code...' 
-        : codeCooldown > 0 
-        ? `Wait ${codeCooldown}s to recheck` 
-        : 'Check for New Code'}
-    </button>
-  </div>
-)}
-
-
-
-
+              {isReceived && (
+                <div className="p-4 rounded-2xl bg-[#0b1e5b]/5 border border-[#0b1e5b]/10 flex flex-col items-center gap-3">
+                  <p className="text-xs text-[#6b7280] text-center">
+                    Requested another SMS code from the app? Click below to check for the new code.
+                  </p>
+                  <button
+                    onClick={handleResendSms}
+                    disabled={isUpdatingAction || isCheckingCode || codeCooldown > 0}
+                    className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#0b1e5b] hover:bg-[#0b1e5b]/90 text-white transition font-bold text-xs sm:text-sm cursor-pointer shadow-sm flex items-center justify-center gap-2 disabled:opacity-75"
+                  >
+                    <ArrowsRightLeftIcon className={`w-5 h-5 ${isCheckingCode ? 'animate-spin' : ''}`} /> 
+                    {isCheckingCode 
+                      ? 'Checking for code...' 
+                      : codeCooldown > 0 
+                      ? `Wait ${codeCooldown}s to recheck` 
+                      : 'Check for New Code'}
+                  </button>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="text-[11px] text-[#6b7280] font-medium">
