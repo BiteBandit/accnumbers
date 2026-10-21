@@ -1,317 +1,166 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-const DEFAULT_MARKUP = 1.0;
-const DEFAULT_USD_TO_NGN_RATE = 1500;
-const PROVIDER_URL = 'https://5sim.net/v1/guest/prices';
-
-function jsonResponse(data: unknown, status = 200) {
-  return NextResponse.json(data, {
-    status,
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    },
-  });
-}
-
-async function getPricingConfig(): Promise<{
-  defaultMarkup: number;
-  usdToNgnRate: number;
-}> {
+async function getPricingConfig() {
   try {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('key, value')
-      .in('key', ['markup_multiplier', 'usd_to_ngn', 'usdt_rate']);
+    const { data } = await supabase.from('settings').select('key, value');
+    if (!data) return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
 
-    if (error) {
-      console.error('[API PRICES] Failed to load pricing settings:', error);
-      return {
-        defaultMarkup: DEFAULT_MARKUP,
-        usdToNgnRate: DEFAULT_USD_TO_NGN_RATE,
-      };
-    }
-
-    const rows = data ?? [];
-    const markupRow = rows.find((row) => row.key === 'markup_multiplier');
-    const rateRow = rows.find(
-      (row) => row.key === 'usd_to_ngn' || row.key === 'usdt_rate'
-    );
-
-    const configuredMarkup = Number(markupRow?.value);
-    const configuredRate = Number(rateRow?.value);
+    const markupRow = data.find((row) => row.key === 'markup_multiplier');
+    const usdToNgnRow = data.find((row) => row.key === 'usd_to_ngn' || row.key === 'usdt_rate');
 
     return {
-      defaultMarkup:
-        Number.isFinite(configuredMarkup) && configuredMarkup > 0
-          ? configuredMarkup
-          : DEFAULT_MARKUP,
-      usdToNgnRate:
-        Number.isFinite(configuredRate) && configuredRate > 0
-          ? configuredRate
-          : DEFAULT_USD_TO_NGN_RATE,
+      defaultMarkup: markupRow ? Number(markupRow.value) : 1.0,
+      usdToNgnRate: usdToNgnRow ? Number(usdToNgnRow.value) : 1500,
     };
-  } catch (error) {
-    console.error('[API PRICES] Error loading pricing settings:', error);
-
-    return {
-      defaultMarkup: DEFAULT_MARKUP,
-      usdToNgnRate: DEFAULT_USD_TO_NGN_RATE,
-    };
+  } catch (err) {
+    console.error('[API PRICES] Error loading settings from Supabase:', err);
+    return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
   }
-}
-
-function convertPriceDetails(
-  value: unknown,
-  markup: number,
-  exchangeRate: number
-): unknown {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return value;
-  }
-
-  const details = value as Record<string, unknown>;
-  const rawPrice = details.cost ?? details.price;
-
-  // Preserve the original data if it has no usable price field.
-  if (rawPrice === undefined || rawPrice === null || rawPrice === '') {
-    return { ...details };
-  }
-
-  const basePrice = Number(rawPrice);
-
-  // Never silently turn malformed provider prices into zero.
-  if (!Number.isFinite(basePrice) || basePrice < 0) {
-    return { ...details };
-  }
-
-  const convertedPrice = Math.ceil(basePrice * markup * exchangeRate);
-  const { price: _price, ...remainingDetails } = details;
-
-  return {
-    ...remainingDetails,
-    cost: convertedPrice,
-  };
-}
-
-function transformPrices(
-  data: unknown,
-  markup: number,
-  exchangeRate: number
-): unknown {
-  if (Array.isArray(data)) {
-    return data.map((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        return item;
-      }
-
-      return convertPriceDetails(item, markup, exchangeRate);
-    });
-  }
-
-  if (!data || typeof data !== 'object') {
-    return data;
-  }
-
-  const result: Record<string, unknown> = {};
-
-  for (const [firstKey, firstValue] of Object.entries(
-    data as Record<string, unknown>
-  )) {
-    if (!firstValue || typeof firstValue !== 'object') {
-      result[firstKey] = firstValue;
-      continue;
-    }
-
-    if (Array.isArray(firstValue)) {
-      result[firstKey] = firstValue.map((item) =>
-        convertPriceDetails(item, markup, exchangeRate)
-      );
-      continue;
-    }
-
-    const firstObject = firstValue as Record<string, unknown>;
-
-    // Some filtered provider responses return pricing details directly.
-    if (
-      'cost' in firstObject ||
-      'price' in firstObject ||
-      'count' in firstObject ||
-      'rate' in firstObject
-    ) {
-      result[firstKey] = convertPriceDetails(
-        firstObject,
-        markup,
-        exchangeRate
-      );
-      continue;
-    }
-
-    const secondLevel: Record<string, unknown> = {};
-
-    for (const [secondKey, secondValue] of Object.entries(firstObject)) {
-      if (!secondValue || typeof secondValue !== 'object') {
-        secondLevel[secondKey] = secondValue;
-        continue;
-      }
-
-      if (Array.isArray(secondValue)) {
-        secondLevel[secondKey] = secondValue.map((item) =>
-          convertPriceDetails(item, markup, exchangeRate)
-        );
-        continue;
-      }
-
-      const secondObject = secondValue as Record<string, unknown>;
-
-      // Filtered responses may expose a price-details object at this level.
-      if (
-        'cost' in secondObject ||
-        'price' in secondObject ||
-        'count' in secondObject ||
-        'rate' in secondObject
-      ) {
-        secondLevel[secondKey] = convertPriceDetails(
-          secondObject,
-          markup,
-          exchangeRate
-        );
-        continue;
-      }
-
-      const operatorLevel: Record<string, unknown> = {};
-
-      for (const [operatorName, operatorDetails] of Object.entries(
-        secondObject
-      )) {
-        operatorLevel[operatorName] = convertPriceDetails(
-          operatorDetails,
-          markup,
-          exchangeRate
-        );
-      }
-
-      secondLevel[secondKey] = operatorLevel;
-    }
-
-    result[firstKey] = secondLevel;
-  }
-
-  return result;
 }
 
 export async function GET(request: Request) {
   try {
-    const apiKey =
-      process.env.SIM5_API_KEY || process.env.GRIZZLY_API_KEY || '';
-
-    if (!apiKey.trim()) {
-      return jsonResponse(
-        { error: 'Price provider API key is not configured.' },
-        500
+    const apiKey = process.env.SIM5_API_KEY || process.env.GRIZZLY_API_KEY || '';
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'API key is missing in server environment variables.' },
+        { status: 500 }
       );
     }
 
+    // Extract query parameters from request URL
     const { searchParams } = new URL(request.url);
-    const country = searchParams.get('country')?.trim();
-    const product = searchParams.get('product')?.trim();
-
-    if (country !== undefined && country !== null && country.length > 100) {
-      return jsonResponse(
-        { error: 'The country parameter is too long.' },
-        400
-      );
-    }
-
-    if (product !== undefined && product !== null && product.length > 100) {
-      return jsonResponse(
-        { error: 'The product parameter is too long.' },
-        400
-      );
-    }
-
-    const providerUrl = new URL(PROVIDER_URL);
-
-    if (country) providerUrl.searchParams.set('country', country);
-    if (product) providerUrl.searchParams.set('product', product);
+    const countryParam = searchParams.get('country');
+    const productParam = searchParams.get('product');
 
     const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
 
-    let providerRes: Response;
-
-    try {
-      providerRes = await fetch(providerUrl.toString(), {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          Accept: 'application/json',
-        },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(15000),
-      });
-    } catch (error) {
-      console.error('[API PRICES] Provider request failed:', error);
-
-      return jsonResponse(
-        { error: 'Unable to connect to the price provider.' },
-        502
-      );
+    // Construct target URL to 5-SIM supporting optional filters
+    let providerUrl = 'https://5sim.net/v1/guest/prices';
+    const queryParts: string[] = [];
+    if (countryParam) queryParts.push(`country=${encodeURIComponent(countryParam)}`);
+    if (productParam) queryParts.push(`product=${encodeURIComponent(productParam)}`);
+    if (queryParts.length > 0) {
+      providerUrl += `?${queryParts.join('&')}`;
     }
+
+    const providerRes = await fetch(providerUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
 
     const textBody = await providerRes.text();
-
-    if (!providerRes.ok) {
-      console.error(
-        '[API PRICES] Provider returned HTTP status:',
-        providerRes.status
-      );
-
-      return jsonResponse(
-        { error: 'The price provider could not process the request.' },
-        502
-      );
+    if (!textBody || textBody.trim() === '') {
+      return NextResponse.json({}, { status: 200 });
     }
 
-    if (!textBody.trim()) {
-      return jsonResponse({});
-    }
-
-    let globalData: unknown;
-
+    let globalData;
     try {
       globalData = JSON.parse(textBody);
-    } catch {
-      console.error('[API PRICES] Provider returned invalid JSON.');
-
-      return jsonResponse(
+    } catch (parseErr) {
+      return NextResponse.json(
         { error: 'Failed to parse provider JSON payload.' },
-        502
+        { status: 502 }
       );
     }
 
-    if (
-      globalData === null ||
-      typeof globalData !== 'object'
-    ) {
-      return jsonResponse({});
+    if (!globalData || typeof globalData !== 'object') {
+      return NextResponse.json({}, { status: 200 });
     }
 
-    const modifiedPrices = transformPrices(
-      globalData,
-      defaultMarkup,
-      usdToNgnRate
-    );
+    // 5-SIM sometimes returns a flat array or object list instead of a nested object tree 
+    // when specific filters like country + product are combined. Let's make the traversal safe.
+    if (Array.isArray(globalData)) {
+      const modifiedPricesArray = globalData.map((item: any) => {
+        if (!item || typeof item !== 'object') return item;
+        const details = item;
+        const baseUsdPrice = Number(details.cost || details.price || 0);
 
-    return jsonResponse(modifiedPrices);
-  } catch (error) {
+        const priceUsd = baseUsdPrice * defaultMarkup;
+        const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
+
+        const { price, ...restDetails } = details;
+
+        return {
+          ...restDetails,
+          cost: finalPrice,
+        };
+      });
+
+      const response = NextResponse.json(modifiedPricesArray, { status: 200 });
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      return response;
+    }
+
+    const modifiedPricesData: Record<string, Record<string, Record<string, any>>> = {};
+
+    for (const [firstKey, firstObj] of Object.entries(globalData as Record<string, any>)) {
+      if (!firstObj || typeof firstObj !== 'object') {
+        modifiedPricesData[firstKey] = firstObj;
+        continue;
+      }
+
+      modifiedPricesData[firstKey] = {};
+
+      for (const [secondKey, secondObj] of Object.entries(firstObj as Record<string, any>)) {
+        if (!secondObj || typeof secondObj !== 'object') {
+          modifiedPricesData[firstKey][secondKey] = secondObj;
+          continue;
+        }
+
+        // Check if secondObj is the operator details object directly (happens on specific filtered endpoints)
+        if ('cost' in secondObj || 'count' in secondObj || 'price' in secondObj || 'rate' in secondObj) {
+          const details = (secondObj as any) || {};
+          const baseUsdPrice = Number(details.cost || details.price || 0);
+
+          const priceUsd = baseUsdPrice * defaultMarkup;
+          const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
+
+          const { price, ...restDetails } = details;
+
+          (modifiedPricesData[firstKey] as any)[secondKey] = {
+            ...restDetails,
+            cost: finalPrice,
+          };
+          continue;
+        }
+
+        modifiedPricesData[firstKey][secondKey] = {};
+
+        for (const [operatorName, operatorDetails] of Object.entries(secondObj as Record<string, any>)) {
+          const details = (operatorDetails as any) || {};
+          const baseUsdPrice = Number(details.cost || details.price || 0);
+
+          // Apply markup and conversion rate
+          const priceUsd = baseUsdPrice * defaultMarkup;
+          const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
+
+          // Remove redundant 'price' field and keep only 'cost'
+          const { price, ...restDetails } = details;
+
+          modifiedPricesData[firstKey][secondKey][operatorName] = {
+            ...restDetails,
+            cost: finalPrice,
+          };
+        }
+      }
+    }
+
+    const response = NextResponse.json(modifiedPricesData, { status: 200 });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    return response;
+
+  } catch (error: any) {
     console.error('[API PRICES CRITICAL ERROR]:', error);
-
-    return jsonResponse(
-      { error: 'Internal server error while loading prices.' },
-      500
+    return NextResponse.json(
+      { error: error.message || 'Internal server error while loading prices.' },
+      { status: 500 }
     );
   }
 }
+
