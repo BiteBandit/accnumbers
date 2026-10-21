@@ -1545,6 +1545,378 @@ export default function ApiDocsPage() {
           </div>
 
 
+{/* Endpoint: User Cancel Order */}
+<div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
+  
+  <div className="space-y-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider shrink-0">GET</span>
+      <span className="text-xs font-mono font-bold text-[#0b1e5b] break-all">/api/v1/user/cancel/{'{id}'}</span>
+    </div>
+    <h2 className="text-lg font-black text-[#0b1e5b]">User Cancel Order</h2>
+    <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
+      This endpoint allows authenticated users to cancel an active virtual phone number rental order using a path parameter. Upon cancellation, the upstream order is closed, and the original payment is automatically refunded back to the user's wallet.
+    </p>
+  </div>
+
+  {/* Authentication requirements note */}
+  <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+    <span className="font-bold text-[#0b1e5b]">Authentication Requirement:</span> Requires a valid API key with an active status, a valid expiration date, and the <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">cancel</code> scope enabled. Pass your key via the <code className="font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header or the <code className="font-mono">x-api-key</code> custom header.
+  </div>
+
+  {/* Path Parameters note */}
+  <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+    <span className="font-bold text-[#0b1e5b]">Path Parameters (Required):</span>
+    <ul className="list-disc pl-5 pt-1 space-y-1 text-gray-600">
+      <li><code className="font-mono">id</code>: The unique numeric order ID of the active rental to cancel (e.g., <code className="font-mono">1116993841</code>).</li>
+    </ul>
+  </div>
+
+  {/* Code Block Terminal */}
+  <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 shadow-xl space-y-6 text-slate-200 font-mono">
+    <div className="flex items-center justify-between border-b border-[#222222] pb-3 text-xs">
+      <span className="text-emerald-400 font-bold"># Request Example (cURL)</span>
+      <span className="text-slate-500 uppercase tracking-widest text-[10px]">terminal</span>
+    </div>
+
+    <div className="space-y-2 text-xs overflow-x-auto">
+      <div className="text-cyan-400">curl -L -X GET &quot;https://www.accnumbers.com/api/v1/user/cancel/1116993841&quot; \</div>
+      <div className="text-slate-300 pl-4">-H &quot;Authorization: Bearer acc_test_6ede12ca9a8ab629ab207f5346140cea&quot; \</div>
+      <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+    </div>
+
+    <div className="border-t border-[#222222] pt-3 space-y-2">
+      <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
+      <div className="text-amber-300 text-xs overflow-x-auto">
+        <pre>{`{
+  "id": 1116993841,
+  "phone": "+18259275375",
+  "operator": "virtual12",
+  "product": "google",
+  "price": 511.84,
+  "status": "CANCELED",
+  "expires": "2026-10-21T07:53:54.058233Z",
+  "sms": [],
+  "created_at": "2026-10-21T07:33:54.058233Z"
+}`}</pre>
+      </div>
+    </div>
+  </div>
+
+  {/* Detailed Error Messages Breakdown */}
+  <div className="space-y-4">
+    <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Detailed Error Messages</h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">400 Bad Request</span>
+          <span className="text-[10px] text-gray-400 font-mono">Invalid ID</span>
+        </div>
+        <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+          &quot;Invalid order ID parameter.&quot;
+        </p>
+        <p className="text-xs text-[#6b7280]">
+          Triggered when the order ID segment is missing or not a valid numeric identifier.
+        </p>
+      </div>
+
+      <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">401 Unauthorized</span>
+          <span className="text-[10px] text-gray-400 font-mono">Missing Token</span>
+        </div>
+        <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+          &quot;Missing or invalid API key&quot;
+        </p>
+        <p className="text-xs text-[#6b7280]">
+          Triggered when no valid authorization header or API token is provided.
+        </p>
+      </div>
+
+      <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">403 Forbidden</span>
+          <span className="text-[10px] text-gray-400 font-mono">Scope Mismatch</span>
+        </div>
+        <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+          &quot;This API key lacks permission to cancel rentals (cancel scope is disabled).&quot;
+        </p>
+        <p className="text-xs text-[#6b7280]">
+          Triggered when the key has the <code className="font-mono">cancel</code> scope explicitly set to false.
+        </p>
+      </div>
+
+      <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">404 Not Found</span>
+          <span className="text-[10px] text-gray-400 font-mono">Order Missing</span>
+        </div>
+        <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+          &quot;Rental record not found or does not belong to user.&quot;
+        </p>
+        <p className="text-xs text-[#6b7280]">
+          Triggered when the specified order ID does not match any active record associated with the user account.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  {/* Field Description Table */}
+  <div className="space-y-4">
+    <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Response Field Descriptions</h3>
+    <div className="overflow-x-auto border border-[#e5e7eb] rounded-2xl">
+      <table className="w-full text-left text-xs">
+        <thead className="bg-[#f8fafc] text-[#0b1e5b] border-b border-[#e5e7eb]">
+          <tr>
+            <th className="p-3.5 font-bold">Field</th>
+            <th className="p-3.5 font-bold">Type</th>
+            <th className="p-3.5 font-bold">Description</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">id</td>
+            <td className="p-3.5 font-mono">Integer</td>
+            <td className="p-3.5">The unique numeric order ID.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">phone</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">The virtual phone number that was canceled.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">operator</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">The telecommunication network operator assigned to the number.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">product</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">The target application or service name (e.g., <code className="font-mono">google</code>).</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">price</td>
+            <td className="p-3.5 font-mono">Number</td>
+            <td className="p-3.5">The local price refunded back to the user's wallet.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">The updated state response of the order (<code className="font-mono">CANCELED</code>).</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">expires</td>
+            <td className="p-3.5 font-mono">String (ISO 8601)</td>
+            <td className="p-3.5">Timestamp indicating when the order session was scheduled to expire.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">sms</td>
+            <td className="p-3.5 font-mono">Array</td>
+            <td className="p-3.5">List of SMS messages received prior to cancellation.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">created_at</td>
+            <td className="p-3.5 font-mono">String (ISO 8601)</td>
+            <td className="p-3.5">Timestamp indicating when the order was initially created.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+          {/* Endpoint: User Ban Order */}
+          <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
+            
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider shrink-0">GET</span>
+                <span className="text-xs font-mono font-bold text-[#0b1e5b] break-all">/api/v1/user/ban/{'{id}'}</span>
+              </div>
+              <h2 className="text-lg font-black text-[#0b1e5b]">User Ban Order</h2>
+              <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
+                This endpoint allows authenticated users to ban an active virtual phone number rental order using a path parameter. Upon banning, the upstream order is closed, and the original payment is automatically refunded back to the user's wallet.
+              </p>
+            </div>
+
+            {/* Authentication requirements note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Authentication Requirement:</span> Requires a valid API key with an active status, a valid expiration date, and the <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">cancel</code> scope enabled. Pass your key via the <code className="font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header or the <code className="font-mono">x-api-key</code> custom header.
+            </div>
+
+            {/* Path Parameters note */}
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 text-xs text-[#475569] space-y-1">
+              <span className="font-bold text-[#0b1e5b]">Path Parameters (Required):</span>
+              <ul className="list-disc pl-5 pt-1 space-y-1 text-gray-600">
+                <li><code className="font-mono">id</code>: The unique numeric order ID of the active rental to ban (e.g., <code className="font-mono">1117036176</code>).</li>
+              </ul>
+            </div>
+
+            {/* Code Block Terminal */}
+            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 shadow-xl space-y-6 text-slate-200 font-mono">
+              <div className="flex items-center justify-between border-b border-[#222222] pb-3 text-xs">
+                <span className="text-emerald-400 font-bold"># Request Example (cURL)</span>
+                <span className="text-slate-500 uppercase tracking-widest text-[10px]">terminal</span>
+              </div>
+
+              <div className="space-y-2 text-xs overflow-x-auto">
+                <div className="text-cyan-400">curl -L -X GET &quot;https://www.accnumbers.com/api/v1/user/ban/1117036176&quot; \</div>
+                <div className="text-slate-300 pl-4">-H &quot;Authorization: Bearer acc_test_6ede12ca9a8ab629ab207f5346140cea&quot; \</div>
+                <div className="text-slate-300 pl-4">-H &quot;Accept: application/json&quot;</div>
+              </div>
+
+              <div className="border-t border-[#222222] pt-3 space-y-2">
+                <div className="text-slate-500 text-xs"># Success Response (200 OK)</div>
+                <div className="text-amber-300 text-xs overflow-x-auto">
+                  <pre>{`{
+  "id": 1117036176,
+  "phone": "+12029828918",
+  "operator": "virtual51",
+  "product": "whatnot",
+  "price": 139.02,
+  "status": "BANNED",
+  "expires": "2026-10-21T08:58:10.485958Z",
+  "sms": [],
+  "created_at": "2026-10-21T08:38:10.485958Z",
+  "country": "usa"
+}`}</pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Error Messages Breakdown */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Detailed Error Messages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">400 Bad Request</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Invalid ID</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Invalid order ID parameter.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the order ID segment is missing or not a valid numeric identifier.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">401 Unauthorized</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Missing Token</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Missing or invalid API key&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when no valid authorization header or API token is provided.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">403 Forbidden</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Scope Mismatch</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;This API key lacks permission to ban rentals (cancel scope is disabled).&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the key has the <code className="font-mono">cancel</code> scope explicitly set to false.
+                  </p>
+                </div>
+
+                <div className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded">404 Not Found</span>
+                    <span className="text-[10px] text-gray-400 font-mono">Order Missing</span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-800 bg-white p-2 rounded border border-gray-200">
+                    &quot;Rental record not found or does not belong to user.&quot;
+                  </p>
+                  <p className="text-xs text-[#6b7280]">
+                    Triggered when the specified order ID does not match any active record associated with the user account.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Field Description Table */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-[#0b1e5b] uppercase tracking-wider">Response Field Descriptions</h3>
+              <div className="overflow-x-auto border border-[#e5e7eb] rounded-2xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#f8fafc] text-[#0b1e5b] border-b border-[#e5e7eb]">
+                    <tr>
+                      <th className="p-3.5 font-bold">Field</th>
+                      <th className="p-3.5 font-bold">Type</th>
+                      <th className="p-3.5 font-bold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">id</td>
+                      <td className="p-3.5 font-mono">Integer</td>
+                      <td className="p-3.5">The unique numeric order ID.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">phone</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The virtual phone number that was banned.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">operator</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The telecommunication network operator assigned to the number.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">product</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The target application or service name (e.g., <code className="font-mono">whatnot</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">price</td>
+                      <td className="p-3.5 font-mono">Number</td>
+                      <td className="p-3.5">The local price refunded back to the user's wallet.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The updated state response of the order (<code className="font-mono">BANNED</code>).</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">expires</td>
+                      <td className="p-3.5 font-mono">String (ISO 8601)</td>
+                      <td className="p-3.5">Timestamp indicating when the order session was scheduled to expire.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">sms</td>
+                      <td className="p-3.5 font-mono">Array</td>
+                      <td className="p-3.5">List of SMS messages received prior to banning.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">created_at</td>
+                      <td className="p-3.5 font-mono">String (ISO 8601)</td>
+                      <td className="p-3.5">Timestamp indicating when the order was initially created.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">country</td>
+                      <td className="p-3.5 font-mono">String</td>
+                      <td className="p-3.5">The country code or name for the number origin.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
 
 
 

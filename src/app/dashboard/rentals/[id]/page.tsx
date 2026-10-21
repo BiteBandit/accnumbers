@@ -75,6 +75,10 @@ export default function RentalDetailPage() {
   const [isCheckingCode, setIsCheckingCode] = useState(false);
   const [codeCooldown, setCodeCooldown] = useState(0);
 
+const balanceNGN = walletBalance;
+
+
+  
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number>(1200);
   const [cancelGraceTimeLeft, setCancelGraceTimeLeft] = useState<number>(60);
@@ -735,21 +739,17 @@ export default function RentalDetailPage() {
         </div>
       )}
 
-      {/* Sidebar Menu Drawer */}
+      {/* Sidebar Drawer */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-[#111111]/40 backdrop-blur-xs transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>
           <div className="relative w-80 bg-[#fdfdfc] border-r border-[#e5e7eb] p-6 flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-left duration-200">
             <div className="space-y-6">
+              
               <div className="flex items-center justify-between border-b border-[#e5e7eb] pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#0b1e5b] flex items-center justify-center text-white font-black text-lg shadow-sm">
-                    A
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-black text-base tracking-tight text-[#0b1e5b] leading-tight">AccNumbers</span>
-                    <span className="text-[9px] font-bold text-[#6b7280] tracking-widest uppercase">Virtual Hub</span>
-                  </div>
+                <div className="flex flex-col">
+                  <span className="font-black text-lg tracking-tight text-[#0b1e5b] leading-tight">Acc<span className="text-[#6b7280]">Numbers</span></span>
+                  <span className="text-[9px] font-bold text-[#6b7280] tracking-widest uppercase">Virtual Hub</span>
                 </div>
                 <button onClick={() => setIsSidebarOpen(false)} className="w-8 h-8 rounded-xl bg-[#e5e7eb]/50 flex items-center justify-center text-[#6b7280] hover:text-[#0b1e5b] transition">
                   <XMarkIcon className="w-5 h-5" />
@@ -759,7 +759,7 @@ export default function RentalDetailPage() {
               <div className="p-4 rounded-2xl bg-[#0b1e5b]/5 border border-[#0b1e5b]/10 space-y-2">
                 <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Active Wallet Balance</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-black text-[#0b1e5b]">₦{walletBalance.toFixed(2)}</span>
+                  <span className="text-lg font-black text-[#0b1e5b]">₦{balanceNGN.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   <Link href="/dashboard/wallet" onClick={() => setIsSidebarOpen(false)} className="px-3 py-1.5 rounded-xl bg-[#0b1e5b] hover:bg-[#0b1e5b]/90 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5">
                     Top up <ArrowRightIcon className="w-3 h-3" />
                   </Link>
@@ -777,7 +777,43 @@ export default function RentalDetailPage() {
                 <Link href="/dashboard/rentals" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-[#0b1e5b]/10 text-[#0b1e5b] font-bold text-xs">
                   <ClipboardDocumentListIcon className="w-4 h-4 text-[#0b1e5b]" /> My active rentals
                 </Link>
+                <Link href="/dashboard/referrals" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
+                  <UsersIcon className="w-4 h-4 text-[#6b7280]" /> Referral rewards
+                </Link>
+                
+                {/* Sidebar Notification Link with Number Badge */}
+<Link href="/dashboard/notifications" onClick={() => setIsSidebarOpen(false)} className="flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
+  <div className="flex items-center gap-3">
+    <BellIcon className="w-4 h-4 text-[#6b7280]" /> Notifications
+  </div>
+  {unreadCount > 0 && (
+    <span className="px-2 py-0.5 bg-red-500 text-white rounded-full font-bold text-[10px]">
+      {unreadCount}
+    </span>
+  )}
+</Link>
+          </div>
+
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider px-2 pb-1">Finance & Funding</p>
+                <Link href="/dashboard/transactions" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
+                  <ArrowsRightLeftIcon className="w-4 h-4 text-[#6b7280]" /> Transactions & Ledger
+                </Link>
+                <Link href="/dashboard/wallet" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
+                  <PlusIcon className="w-4 h-4 text-[#6b7280]" /> Wallet Top Up
+                </Link>
               </div>
+
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider px-2 pb-1">System & Settings</p>
+                <Link href="/dashboard/api" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
+                  <KeyIcon className="w-4 h-4 text-[#6b7280]" /> API Keys & Access
+                </Link>
+                <Link href="/dashboard/security" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl hover:bg-[#e5e7eb]/40 text-[#111111] font-medium text-xs transition">
+                  <ShieldCheckIcon className="w-4 h-4 text-[#6b7280]" /> Security & 2FA
+                </Link>
+              </div>
+
             </div>
 
             <div className="pt-4 border-t border-[#e5e7eb] space-y-3">
@@ -788,18 +824,23 @@ export default function RentalDetailPage() {
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-xs font-bold text-[#0b1e5b] truncate">{displayName}</span>
                   <span className="text-[10px] text-[#6b7280] truncate">{currentUserData?.email || 'user@accnumbers.com'}</span>
+
+
                 </div>
               </div>
-              <button 
-                onClick={handleUserSignOut}
-                className="w-full py-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-bold text-center cursor-pointer shadow-xs flex items-center justify-center gap-2"
-              >
+        <button 
+  onClick={handleUserSignOut}
+  className="w-full py-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-bold text-center cursor-pointer shadow-xs flex items-center justify-center gap-2"
+>
+
+
                 <ArrowRightOnRectangleIcon className="w-4 h-4" /> Sign Out Securely
               </button>
             </div>
           </div>
         </div>
       )}
+      
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-full sm:max-w-5xl mx-auto py-10 px-3 sm:px-8 space-y-8">
