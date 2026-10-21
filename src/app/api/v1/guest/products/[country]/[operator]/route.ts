@@ -1,109 +1,273 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
-async function getPricingConfig() {
-  try {
-    const { data } = await supabase.from('settings').select('key, value');
-    if (!data) return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-    const markupRow = data.find((row) => row.key === 'markup_multiplier');
-    const usdToNgnRow = data.find((row) => row.key === 'usd_to_ngn' || row.key === 'usdt_rate');
+const DEFAULT_MARKUP = 1;
+const DEFAULT_USD_TO_NGN_RATE = 1500;
+const REQUEST_TIMEOUT_MS = 15_000;
 
-    return {
-      defaultMarkup: markupRow ? Number(markupRow.value) : 1.0,
-      usdToNgnRate: usdToNgnRow ? Number(usdToNgnRow.value) : 1500,
-    };
-  } catch (err) {
-    console.error('[API PRODUCTS] Error loading settings from Supabase:', err);
-    return { defaultMarkup: 1.0, usdToNgnRate: 1500 };
-  }
+type PricingConfig = {
+defaultMarkup: number;
+usdToNgnRate: number;
+};
+
+type Product = {
+Category: string;
+Qty: number;
+Price: number;
+};
+
+function jsonResponse(
+body: unknown,
+status = 200,
+noStore = false
+) {
+const response = NextResponse.json(body, { status });
+
+if (noStore) {
+response.headers.set(
+'Cache-Control',
+'no-store, no-cache, must-revalidate, proxy-revalidate'
+);
+}
+
+return response;
+}
+
+async function getPricingConfig(): Promise<PricingConfig> {
+try {
+const { data, error } = await supabase
+.from('settings')
+.select('key, value')
+.in('key', ['markup_multiplier', 'usd_to_ngn', 'usdt_rate']);
+
+if (error || !data) {
+  return {
+    defaultMarkup: DEFAULT_MARKUP,
+    usdToNgnRate: DEFAULT_USD_TO_NGN_RATE,
+  };
+}
+
+const markupRow = data.find(
+  (row) => row.key === 'markup_multiplier'
+);
+
+const exchangeRateRow = data.find(
+  (row) => row.key === 'usd_to_ngn' || row.key === 'usdt_rate'
+);
+
+const markup = Number(markupRow?.value);
+const exchangeRate = Number(exchangeRateRow?.value);
+
+return {
+  defaultMarkup:
+    Number.isFinite(markup) && markup > 0
+      ? markup
+      : DEFAULT_MARKUP,
+  usdToNgnRate:
+    Number.isFinite(exchangeRate) && exchangeRate > 0
+      ? exchangeRate
+      : DEFAULT_USD_TO_NGN_RATE,
+};
+
+} catch (error) {
+console.error('[GUEST PRODUCTS] Failed to load pricing settings:', error);
+
+return {
+  defaultMarkup: DEFAULT_MARKUP,
+  usdToNgnRate: DEFAULT_USD_TO_NGN_RATE,
+};
+
+}
+}
+
+function normalizePathParameter(value: string): string {
+return value.trim().toLowerCase();
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ country: string; operator: string }> }
+_request: Request,
+{
+params,
+}: {
+params: Promise<{ country: string; operator: string }>;
+}
 ) {
-  try {
-    const resolvedParams = await params;
-    const country = resolvedParams?.country?.toLowerCase() || '';
-    const operator = resolvedParams?.operator?.toLowerCase() || '';
+try {
+const resolvedParams = await params;
 
-    if (!country || !operator) {
-      return NextResponse.json(
-        { error: 'Missing country or operator path parameters.' },
-        { status: 400 }
-      );
-    }
+const country = normalizePathParameter(resolvedParams?.country ?? '');
+const operator = normalizePathParameter(resolvedParams?.operator ?? '');
 
-    const apiKey = process.env.SIM5_API_KEY || process.env.GRIZZLY_API_KEY || '';
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'API key is missing in server environment variables.' },
-        { status: 500 }
-      );
-    }
-
-    const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
-
-    // Query 5-SIM's direct product endpoint for the given country and operator
-    const providerRes = await fetch(`https://5sim.net/v1/guest/products/${country}/${operator}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    const textBody = await providerRes.text();
-    if (!textBody || textBody.trim() === '') {
-      return NextResponse.json({}, { status: 200 });
-    }
-
-    let upstreamData;
-    try {
-      upstreamData = JSON.parse(textBody);
-    } catch (parseErr) {
-      return NextResponse.json(
-        { error: 'Failed to parse provider JSON payload.' },
-        { status: 502 }
-      );
-    }
-
-    // If 5-SIM returns an error message or empty object
-    if (!upstreamData || typeof upstreamData !== 'object') {
-      return NextResponse.json({}, { status: 200 });
-    }
-
-    // Transform raw 5-SIM products payload: apply your markup and conversion rate
-    const modifiedProducts: Record<string, { Category: string; Qty: number; Price: number }> = {};
-
-    for (const [productName, productDetails] of Object.entries(upstreamData as Record<string, any>)) {
-      const baseUsdPrice = Number(productDetails?.Price || productDetails?.cost || productDetails?.price || 0);
-      const totalStock = Number(productDetails?.Qty || productDetails?.count || 0);
-
-      if (totalStock <= 0) continue;
-
-      const priceUsd = baseUsdPrice * defaultMarkup;
-      const finalPrice = Math.ceil(priceUsd * usdToNgnRate);
-
-      modifiedProducts[productName] = {
-        Category: productDetails?.Category || productDetails?.category || 'activation',
-        Qty: totalStock,
-        Price: finalPrice,
-      };
-    }
-
-    const response = NextResponse.json(modifiedProducts, { status: 200 });
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    return response;
-
-  } catch (error: any) {
-    console.error('[API GUEST PRODUCTS CRITICAL ERROR]:', error);
-    return NextResponse.json(
-      { error: error.message || 'Internal server error while loading products.' },
-      { status: 500 }
-    );
-  }
+if (!country || !operator) {
+  return jsonResponse(
+    { error: 'Both country and operator are required.' },
+    400,
+    true
+  );
 }
 
+if (
+  country.length > 100 ||
+  operator.length > 100 ||
+  !/^[a-z0-9_-]+$/.test(country) ||
+  !/^[a-z0-9_-]+$/.test(operator)
+) {
+  return jsonResponse(
+    { error: 'The country or operator parameter is invalid.' },
+    400,
+    true
+  );
+}
+
+const apiKey =
+  process.env.SIM5_API_KEY ||
+  process.env.GRIZZLY_API_KEY;
+
+if (!apiKey) {
+  console.error('[GUEST PRODUCTS] Required server configuration is missing.');
+
+  return jsonResponse(
+    { error: 'Product information is temporarily unavailable.' },
+    503,
+    true
+  );
+}
+
+const { defaultMarkup, usdToNgnRate } = await getPricingConfig();
+
+const url =
+  `https://5sim.net/v1/guest/products/` +
+  `${encodeURIComponent(country)}/${encodeURIComponent(operator)}`;
+
+let providerResponse: Response;
+
+try {
+  providerResponse = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+    },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+} catch (error) {
+  console.error('[GUEST PRODUCTS] Request failed:', error);
+
+  return jsonResponse(
+    { error: 'Product information is temporarily unavailable. Please try again.' },
+    502,
+    true
+  );
+}
+
+if (!providerResponse.ok) {
+  console.error(
+    '[GUEST PRODUCTS] Product request returned status:',
+    providerResponse.status
+  );
+
+  return jsonResponse(
+    { error: 'Unable to retrieve products right now. Please try again later.' },
+    502,
+    true
+  );
+}
+
+let data: unknown;
+
+try {
+  const textBody = await providerResponse.text();
+
+  if (!textBody.trim()) {
+    return jsonResponse({}, 200, true);
+  }
+
+  data = JSON.parse(textBody);
+} catch (error) {
+  console.error('[GUEST PRODUCTS] Failed to process product data:', error);
+
+  return jsonResponse(
+    { error: 'Unable to process product data. Please try again later.' },
+    502,
+    true
+  );
+}
+
+if (
+  !data ||
+  typeof data !== 'object' ||
+  Array.isArray(data)
+) {
+  return jsonResponse({}, 200, true);
+}
+
+const modifiedProducts: Record<string, Product> = {};
+
+for (const [productName, rawDetails] of Object.entries(
+  data as Record<string, unknown>
+)) {
+  if (
+    !rawDetails ||
+    typeof rawDetails !== 'object' ||
+    Array.isArray(rawDetails)
+  ) {
+    continue;
+  }
+
+  const details = rawDetails as Record<string, unknown>;
+
+  const rawPrice =
+    details.Price ?? details.cost ?? details.price ?? 0;
+
+  const rawQuantity =
+    details.Qty ?? details.count ?? 0;
+
+  const basePrice = Number(rawPrice);
+  const quantity = Number(rawQuantity);
+
+  if (
+    !Number.isFinite(basePrice) ||
+    basePrice < 0 ||
+    !Number.isFinite(quantity) ||
+    quantity <= 0
+  ) {
+    continue;
+  }
+
+  const finalPrice = Math.ceil(
+    basePrice * defaultMarkup * usdToNgnRate
+  );
+
+  if (!Number.isFinite(finalPrice)) {
+    continue;
+  }
+
+  const rawCategory = details.Category ?? details.category;
+
+  modifiedProducts[productName] = {
+    Category:
+      typeof rawCategory === 'string' && rawCategory.trim()
+        ? rawCategory
+        : 'activation',
+    Qty: quantity,
+    Price: finalPrice,
+  };
+}
+
+return jsonResponse(modifiedProducts, 200, true);
+
+} catch (error) {
+console.error('[GUEST PRODUCTS] Unexpected error:', error);
+
+return jsonResponse(
+  { error: 'An unexpected error occurred while loading products.' },
+  500,
+  true
+);
+
+}
+}
