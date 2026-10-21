@@ -59,7 +59,7 @@ function parseNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   try {
     // This ID is the external 5SIM order ID, not the local rental UUID.
     const { id: externalOrderId } = await params;
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    // Authenticate the customer's API key. (Fixed `request` to `req`)
+    // Authenticate the customer's API key.
     const authorization = req.headers.get("authorization");
     const apiKey = authorization
       ?.match(/^Bearer\s+(.+)$/i)?.[1]
