@@ -2295,28 +2295,24 @@ console.log(products);`}</pre>
 
 
 
-
-
-
-
-{/* Endpoint: User Cancel Rental */}
+{/* Endpoint: User Finish Order */}
 <div className="bg-white border border-[#e5e7eb] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8">
   <div className="space-y-3">
     <div className="flex flex-wrap items-center gap-2">
       <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider shrink-0">
-        POST
+        GET
       </span>
       <span className="text-xs font-mono font-bold text-[#0b1e5b] break-all">
-        /api/v1/user/cancel/{'{id}'}
+        /api/v1/user/finish/{'{id}'}
       </span>
     </div>
 
     <h2 className="text-lg font-black text-[#0b1e5b]">
-      User Cancel Rental
+      User Finish Order
     </h2>
 
     <p className="text-xs sm:text-sm text-[#6b7280] leading-relaxed">
-      Cancels a virtual number rental using its external order ID. After cancellation is confirmed, Accnumbers updates the corresponding local rental and processes the refund. On success, the endpoint returns the complete order response directly, including the phone number, product, price, status, SMS messages, forwarding details, and country.
+      Finishes a virtual number rental order belonging to the authenticated API key owner. After the order service confirms the operation, Accnumbers updates the local rental status to <code className="font-mono">FINISHED</code>.
     </p>
   </div>
 
@@ -2327,15 +2323,23 @@ console.log(products);`}</pre>
     </span>
 
     <p>
-      Provide an active, non-expired API key associated with a user account.
+      Provide an active API key that has not expired and is associated with a user account.
     </p>
 
     <p>
-      Pass the API key using <code className="font-mono">Authorization: Bearer YOUR_API_KEY</code>.
+      The route accepts a key with at least one of these scopes enabled:
+      {" "}
+      <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">check</code>,
+      {" "}
+      <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">purchase</code>,
+      {" "}
+      or
+      {" "}
+      <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px]">rentals</code>.
     </p>
 
     <p>
-      The API key must have permission to cancel rentals. The requested external order ID must belong to the authenticated user.
+      Pass the key using <code className="font-mono">Authorization: Bearer YOUR_API_KEY</code> or the <code className="font-mono">x-api-key</code> header.
     </p>
   </div>
 
@@ -2347,7 +2351,7 @@ console.log(products);`}</pre>
 
     <ul className="list-disc pl-5 space-y-1 text-gray-600">
       <li>
-        <code className="font-mono">id</code>: Required external order ID stored in the local rental record.
+        <code className="font-mono">id</code>: Required order identifier. Use the local rental ID or the external order ID associated with your rental.
       </li>
       <li>
         Example: <code className="font-mono">11631253</code>
@@ -2366,7 +2370,7 @@ console.log(products);`}</pre>
       </span>
     </div>
 
-    <pre className="text-xs whitespace-pre-wrap break-all text-slate-300">{`curl -X POST "https://www.accnumbers.com/api/v1/user/cancel/11631253" \\
+    <pre className="text-xs whitespace-pre-wrap break-all text-slate-300">{`curl -X GET "https://www.accnumbers.com/api/v1/user/finish/11631253" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Accept: application/json"`}</pre>
   </div>
@@ -2378,7 +2382,7 @@ console.log(products);`}</pre>
     </h3>
 
     <p className="text-xs text-[#6b7280]">
-      HTTP <code className="font-mono">200 OK</code>. Returns the complete order object directly, rather than wrapping it inside a <code className="font-mono">data</code> property.
+      HTTP <code className="font-mono">200 OK</code> when the order is finished and the local status is synchronized successfully.
     </p>
 
     <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 space-y-3 text-slate-200 font-mono">
@@ -2387,31 +2391,51 @@ console.log(products);`}</pre>
       </div>
 
       <pre className="text-xs overflow-x-auto text-amber-300">{`{
-  "id": 11631253,
-  "created_at": "2018-10-13T08:13:38.809469028Z",
-  "phone": "+447350690992",
-  "product": "facebook",
-  "price": 21,
-  "status": "CANCELED",
-  "expires": "2018-10-13T08:28:38.809469028Z",
-  "sms": [
-    {
-      "created_at": "2018-10-13T08:20:38.809469028Z",
-      "date": "2018-10-13T08:19:38Z",
-      "sender": "Facebook",
-      "text": "Facebook: 09363 - use this code to reclaim your suspended profile.",
-      "code": "09363"
-    }
-  ],
-  "forwarding": false,
-  "forwarding_number": "",
-  "country": "england"
+  "success": true,
+  "message": "Order finished successfully.",
+  "id": "local-rental-id",
+  "status": "FINISHED",
+  "provider_response": {
+    "...": "provider response fields"
+  }
+}`}</pre>
+
+      <p className="text-[11px] text-slate-400 leading-relaxed">
+        The <code className="text-slate-200">provider_response</code> field contains the response returned by the order service. Its exact structure depends on that service.
+      </p>
+    </div>
+
+    <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-2xl p-4 space-y-2">
+      <p className="text-xs font-bold text-green-800">
+        Already-finished order
+      </p>
+      <p className="text-xs text-green-900">
+        If the local order is already marked <code className="font-mono">FINISHED</code>, the endpoint returns HTTP 200 without calling the order service again.
+      </p>
+
+      <pre className="text-xs overflow-x-auto bg-white border border-green-100 rounded-xl p-3 text-gray-700">{`{
+  "success": true,
+  "message": "Order is already finished.",
+  "id": "local-rental-id",
+  "status": "FINISHED"
 }`}</pre>
     </div>
 
-    <p className="text-xs text-[#6b7280]">
-      The values above are illustrative. The actual response reflects the canceled order and its available fields; the SMS array may be empty or contain different messages.
-    </p>
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+      <p className="text-xs font-bold text-amber-800">
+        Local synchronization warning
+      </p>
+      <p className="text-xs text-amber-900">
+        If the order service confirms the finish operation but Accnumbers cannot update the local database, the endpoint returns HTTP 200 with a warning. Check the order status before retrying.
+      </p>
+
+      <pre className="text-xs overflow-x-auto bg-white border border-amber-100 rounded-xl p-3 text-gray-700">{`{
+  "success": true,
+  "warning": "The order was finished, but its local status could not be synchronized. Please check the order status.",
+  "id": "local-rental-id",
+  "provider_response": {}
+}`}</pre>
+    </div>
   </div>
 
   {/* Errors */}
@@ -2426,61 +2450,61 @@ console.log(products);`}</pre>
           code: "400 Bad Request",
           label: "Invalid order ID",
           message: "Invalid order ID.",
-          description: "The supplied external order ID is missing or invalid.",
+          description: "The ID is missing, too long, or contains unsupported characters.",
           color: "text-amber-700 bg-amber-50",
         },
         {
           code: "401 Unauthorized",
           label: "Authentication failed",
-          message: "Missing or invalid API key.",
-          description: "The API key is missing, invalid, inactive, or expired.",
+          message: "Missing API key.",
+          description: "No API key was provided, or the key is invalid, inactive, or expired.",
           color: "text-red-600 bg-red-50",
         },
         {
           code: "403 Forbidden",
           label: "Permission denied",
-          message: "You are not allowed to cancel this rental.",
-          description: "The API key lacks the required permission or the rental does not belong to the authenticated user.",
+          message: "You do not have permission to finish this order.",
+          description: "The API key lacks the required scope, is not associated with a user, or does not own the requested order.",
           color: "text-amber-700 bg-amber-50",
         },
         {
           code: "404 Not Found",
-          label: "Rental not found",
-          message: "Rental not found.",
-          description: "No matching local rental was found for the supplied external order ID and authenticated user.",
+          label: "Order not found",
+          message: "Order not found.",
+          description: "No matching local rental record was found for the supplied identifier.",
           color: "text-red-600 bg-red-50",
-        },
-        {
-          code: "409 Conflict",
-          label: "Cancellation unavailable",
-          message: "This rental cannot be canceled.",
-          description: "The rental is already finished, canceled, timed out, banned, or otherwise ineligible for cancellation.",
-          color: "text-amber-700 bg-amber-50",
         },
         {
           code: "500 Internal Server Error",
-          label: "Server or refund error",
-          message: "An unexpected error occurred.",
-          description: "A database or server operation failed. If cancellation was already confirmed, the refund must be reconciled.",
+          label: "Database or server error",
+          message: "Unable to authenticate API key.",
+          description: "A database lookup or unexpected server operation failed. The specific message depends on the failed operation.",
           color: "text-red-600 bg-red-50",
         },
         {
           code: "502 Bad Gateway",
-          label: "Cancellation failed",
-          message: "Cancellation could not be completed.",
-          description: "The cancellation service returned an unsuccessful response or did not confirm cancellation.",
+          label: "Order service error",
+          message: "Unable to reach the order service.",
+          description: "The order service could not be reached, returned an unexpected response, or rejected its server-side authorization.",
           color: "text-red-600 bg-red-50",
         },
         {
-          code: "502 Bad Gateway",
-          label: "Refund needs attention",
-          message: "Cancellation was confirmed, but the refund could not be processed. Please contact support.",
-          description: "The order was canceled remotely, but the local refund operation failed. Check the rental and transaction records before retrying.",
+          code: "503 Service Unavailable",
+          label: "Service unavailable",
+          message: "Order service is temporarily unavailable.",
+          description: "Server configuration is incomplete or the order service is rate-limiting requests.",
           color: "text-amber-700 bg-amber-50",
         },
-      ].map((error, index) => (
+        {
+          code: "504 Gateway Timeout",
+          label: "Request timed out",
+          message: "Order service timed out. Please try again.",
+          description: "The order service did not respond within the 12-second timeout.",
+          color: "text-amber-700 bg-amber-50",
+        },
+      ].map((error) => (
         <div
-          key={`${error.code}-${index}`}
+          key={error.code}
           className="border border-[#e5e7eb] rounded-2xl p-4 space-y-2 bg-[#fafafa]"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2502,10 +2526,6 @@ console.log(products);`}</pre>
         </div>
       ))}
     </div>
-
-    <p className="text-xs text-[#6b7280]">
-      Error response codes and messages must match the actual deployed route. Customer-facing errors should never reveal provider names, tokens, or raw upstream error messages.
-    </p>
   </div>
 
   {/* Response fields */}
@@ -2525,25 +2545,41 @@ console.log(products);`}</pre>
         </thead>
 
         <tbody className="divide-y divide-[#e5e7eb] text-[#6b7280]">
-          {[
-            ["id", "Number", "External order identifier."],
-            ["created_at", "String", "Order creation timestamp in ISO 8601 format."],
-            ["phone", "String", "The rented phone number."],
-            ["product", "String", "The service or product associated with the order."],
-            ["price", "Number", "The price reported for the order by the upstream service; it may differ from the user's refund amount."],
-            ["status", "String", "The order status. A confirmed cancellation returns CANCELED."],
-            ["expires", "String", "The order expiration timestamp."],
-            ["sms", "Array", "SMS messages associated with the order, including sender, text, date, and code when available."],
-            ["forwarding", "Boolean", "Indicates whether call forwarding is enabled."],
-            ["forwarding_number", "String", "The configured forwarding phone number, if any."],
-            ["country", "String", "The country identifier associated with the order."],
-          ].map(([field, type, description]) => (
-            <tr key={field}>
-              <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">{field}</td>
-              <td className="p-3.5 font-mono">{type}</td>
-              <td className="p-3.5">{description}</td>
-            </tr>
-          ))}
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">success</td>
+            <td className="p-3.5 font-mono">Boolean</td>
+            <td className="p-3.5">Indicates that the finish operation was accepted as successful by the endpoint.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">message</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">Human-readable result message, including when an order is already finished.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">id</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">The local rental identifier. Its type follows the database value.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">status</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">The local rental status after synchronization, typically <code className="font-mono">FINISHED</code>.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">provider_response</td>
+            <td className="p-3.5 font-mono">Object / Any</td>
+            <td className="p-3.5">The response returned by the order service. This field may be absent when the order was already finished.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">warning</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">Returned when the remote finish succeeds but the local status update fails.</td>
+          </tr>
+          <tr>
+            <td className="p-3.5 font-mono font-bold text-[#0b1e5b]">error</td>
+            <td className="p-3.5 font-mono">String</td>
+            <td className="p-3.5">Describes why the request failed.</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -2556,17 +2592,18 @@ console.log(products);`}</pre>
     </h3>
 
     <ul className="list-disc pl-5 space-y-1 text-xs text-[#475569]">
-      <li>The path uses the external order ID, not the local rental UUID.</li>
-      <li>The route must look up the local rental by external order ID and authenticated user before attempting cancellation.</li>
-      <li>The successful response returns the order object directly, without a wrapper.</li>
-      <li>Accnumbers must only process a refund after cancellation is confirmed.</li>
-      <li>Refund processing and local status synchronization should be atomic and protected against duplicate refunds.</li>
-      <li>If the cancellation request times out, check the current order status before retrying.</li>
-      <li>The <code className="font-mono">price</code> in the order response is not a confirmation of the amount credited to the user's Accnumbers wallet.</li>
-      <li>All customer-facing errors must use generic wording and must not disclose the upstream provider's name.</li>
+      <li>The order must exist in Accnumbers and belong to the API key owner.</li>
+      <li>The endpoint accepts GET requests and uses a 12-second timeout for the order service.</li>
+      <li>The local rental status is updated only after the order service responds successfully.</li>
+      
+      <li>A successful HTTP response with a <code className="font-mono">warning</code> means the remote operation succeeded but local synchronization needs checking.</li>
+      
     </ul>
   </div>
 </div>
+
+
+
 
 
 
